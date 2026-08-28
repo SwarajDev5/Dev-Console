@@ -1,0 +1,21 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+*.pyc
+.pytest_cache/
+env/
+venv/
+.venv/
+
+# Large unused raw archives (>100MB GitHub limit)
+assets/3dstadium/stadium.glb
+assets/ball/*.zip
+assets/ball/*.skp
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
