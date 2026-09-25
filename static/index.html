@@ -297,6 +297,54 @@
             pointer-events: none; transition: background 0.05s linear;
         }
 
+        /* VERTICAL FREEHAND CONTROLLER FOR PING PONG */
+        #pingpong-phone-controller {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            display: flex; flex-direction: column; z-index: 500;
+            touch-action: none; user-select: none; -webkit-user-select: none;
+            overflow: hidden;
+        }
+        .pingpong-ctrl-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px; background: rgba(15, 23, 42, 0.92);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(8px);
+            flex-shrink: 0; z-index: 20;
+        }
+        .pingpong-ctrl-badge {
+            display: flex; align-items: center; gap: 10px; font-weight: 900;
+            font-size: 1.05rem; letter-spacing: 1px; color: #ffffff;
+        }
+        .pingpong-touchpad-area {
+            flex: 1; width: 100%; position: relative; display: flex;
+            align-items: center; justify-content: center; touch-action: none;
+            background: #020617;
+            background-image: 
+                radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 28px 28px, 100% 56px;
+            cursor: crosshair;
+        }
+        .pingpong-court-guide {
+            position: absolute; inset: 20px; border: 2.5px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 24px; pointer-events: none; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        .pingpong-court-guide-line {
+            width: 100%; height: 2px; background: rgba(255, 255, 255, 0.2); margin: auto 0;
+        }
+        .pingpong-touch-indicator {
+            position: absolute; width: 72px; height: 72px; border-radius: 50%;
+            border: 3.5px solid #ffffff; box-shadow: 0 0 30px rgba(255, 255, 255, 0.9);
+            transform: translate(-50%, -50%); pointer-events: none; display: none;
+            background: rgba(255, 255, 255, 0.22); backdrop-filter: blur(6px);
+        }
+        .pingpong-touch-hint {
+            position: absolute; bottom: 20px; font-size: 0.85rem; font-weight: 800;
+            color: rgba(255, 255, 255, 0.55); letter-spacing: 1px; pointer-events: none;
+            text-align: center; text-transform: uppercase;
+        }
+
         /* SCOREBOARD HUD & TIMER WITH POPPING ANIMATION */
         #screenshot-hud {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
@@ -859,6 +907,26 @@
                 <span class="pc-key-hint">Shift</span>
                 <div class="dash-cooldown-overlay" id="dash-cooldown-overlay"></div>
             </button>
+
+            <!-- DEDICATED VERTICAL FREEHAND CONTROLLER FOR PING PONG -->
+            <div id="pingpong-phone-controller" class="hidden">
+                <div class="pingpong-ctrl-header">
+                    <div class="pingpong-ctrl-badge" id="pingpong-ctrl-team-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:4px;"><circle cx="12" cy="10" r="7"/><line x1="12" y1="17" x2="12" y2="23"/><line x1="9" y1="23" x2="15" y2="23"/></svg>
+                        <span id="pingpong-ctrl-team-text">TEAM RED</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="admin-pingpong-settings-btn" class="btn-fancy btn-black-outline hidden" style="width: auto; padding: 6px 14px; margin: 0; font-size: 0.8rem; pointer-events: auto; z-index: 500;" onclick="toggleAdminSettings()">SETTINGS</button>
+                    </div>
+                </div>
+                <div class="pingpong-touchpad-area" id="pingpong-touchpad-surface">
+                    <div class="pingpong-court-guide">
+                        <div class="pingpong-court-guide-line"></div>
+                    </div>
+                    <div class="pingpong-touch-indicator" id="pingpong-touch-dot"></div>
+                    <div class="pingpong-touch-hint">Freehand Racket &bull; Drag to Move &bull; Swipe to Hit Hard</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1544,12 +1612,14 @@
                 if (state === 'connecting_lobby' || state === 'game_select') {
                     document.getElementById('controller-game').classList.add('hidden');
                     document.getElementById('controller-teams').classList.add('hidden');
+                    document.getElementById('pingpong-phone-controller')?.classList.add('hidden');
                     handleOrientationCheck();
                 }
                 if (state === 'side_select') {
                     document.getElementById('controller-lobby').classList.add('hidden');
                     document.getElementById('controller-portrait-remote').classList.add('hidden');
                     document.getElementById('controller-game').classList.add('hidden');
+                    document.getElementById('pingpong-phone-controller')?.classList.add('hidden');
                     document.getElementById('controller-teams').classList.remove('hidden');
                     if (isHostUser) document.getElementById('admin-side-play-box').classList.remove('hidden');
                 }
@@ -1560,16 +1630,50 @@
                     document.getElementById('controller-game').classList.remove('hidden');
 
                     const currGameId = selectedGame || (gamesCatalog[selectedGameIndex]?.id) || 'dev_goal';
-                    if (currGameId === 'spacess' || currGameId === 'ping_pong') {
+                    if (currGameId === 'ping_pong') {
+                        // REMOVE JOYSTICK & STANDARD ACTION BUTTONS
+                        document.getElementById('joystick-container')?.classList.add('hidden');
                         document.getElementById('btn-shoot')?.classList.add('hidden');
                         document.getElementById('btn-pass')?.classList.add('hidden');
+                        document.getElementById('btn-dash')?.classList.add('hidden');
+                        document.getElementById('admin-settings-trigger')?.classList.add('hidden');
+
+                        // SHOW DEDICATED VERTICAL FREEHAND CONTROLLER
+                        const ppCtrl = document.getElementById('pingpong-phone-controller');
+                        if (ppCtrl) ppCtrl.classList.remove('hidden');
+
+                        if (isHostUser) {
+                            document.getElementById('admin-pingpong-settings-btn')?.classList.remove('hidden');
+                        } else {
+                            document.getElementById('admin-pingpong-settings-btn')?.classList.add('hidden');
+                        }
+
+                        const myPlayer = players.find(p => p.id === socket.id);
+                        const teamText = document.getElementById('pingpong-ctrl-team-text');
+                        if (teamText && myPlayer) {
+                            teamText.innerText = (myPlayer.team === 'left') ? 'TEAM RED (LEFT)' : 'TEAM BLUE (RIGHT)';
+                            teamText.style.color = (myPlayer.team === 'left') ? '#f87171' : '#38bdf8';
+                        }
+
+                        bindPingPongTouchpad();
+                    } else if (currGameId === 'spacess') {
+                        document.getElementById('pingpong-phone-controller')?.classList.add('hidden');
+                        document.getElementById('joystick-container')?.classList.remove('hidden');
+                        document.getElementById('btn-shoot')?.classList.add('hidden');
+                        document.getElementById('btn-pass')?.classList.add('hidden');
+                        document.getElementById('btn-dash')?.classList.remove('hidden');
                         const label = document.getElementById('dash-btn-label');
-                        if (label) label.innerText = (currGameId === 'ping_pong') ? 'SMASH' : 'BOOST';
+                        if (label) label.innerText = 'BOOST';
+                        if (isHostUser) document.getElementById('admin-settings-trigger')?.classList.remove('hidden');
                     } else {
+                        document.getElementById('pingpong-phone-controller')?.classList.add('hidden');
+                        document.getElementById('joystick-container')?.classList.remove('hidden');
                         document.getElementById('btn-shoot')?.classList.remove('hidden');
                         document.getElementById('btn-pass')?.classList.remove('hidden');
+                        document.getElementById('btn-dash')?.classList.remove('hidden');
                         const label = document.getElementById('dash-btn-label');
                         if (label) label.innerText = 'DASH';
+                        if (isHostUser) document.getElementById('admin-settings-trigger')?.classList.remove('hidden');
                     }
 
                     forceFullscreenAndLandscape();
@@ -2574,37 +2678,113 @@
             };
         }
 
+        let pingPongTouchpadBound = false;
+        function bindPingPongTouchpad() {
+            if (pingPongTouchpadBound) return;
+            pingPongTouchpadBound = true;
+
+            const pad = document.getElementById('pingpong-touchpad-surface');
+            const dot = document.getElementById('pingpong-touch-dot');
+            if (!pad) return;
+
+            let lastX = 0, lastY = 0, lastTime = 0;
+
+            const handleTouch = (e) => {
+                if (e.cancelable) e.preventDefault();
+                const touch = e.touches[0];
+                if (!touch) return;
+
+                const rect = pad.getBoundingClientRect();
+                const touchX = touch.clientX - rect.left;
+                const touchY = touch.clientY - rect.top;
+
+                const normX = Math.max(0, Math.min(1, touchX / rect.width));
+                const normY = Math.max(0, Math.min(1, touchY / rect.height));
+
+                const now = performance.now();
+                const dt = Math.max(1, now - lastTime);
+                const speed = Math.hypot(touchX - lastX, touchY - lastY) / dt;
+                const swingForce = Math.min(3.5, Math.max(0.8, speed * 2.2));
+
+                lastX = touchX;
+                lastY = touchY;
+                lastTime = now;
+
+                if (dot) {
+                    dot.style.display = 'block';
+                    dot.style.left = `${touchX}px`;
+                    dot.style.top = `${touchY}px`;
+                    if (swingForce > 2.0) {
+                        dot.style.borderColor = '#fbbf24';
+                        dot.style.boxShadow = '0 0 35px #f59e0b';
+                    } else {
+                        dot.style.borderColor = '#ffffff';
+                        dot.style.boxShadow = '0 0 25px rgba(255,255,255,0.8)';
+                    }
+                }
+
+                ctrlState.moveX = normX;
+                ctrlState.moveY = normY;
+                socket.emit('controller_input', {
+                    ...ctrlState,
+                    normX: Number(normX.toFixed(3)),
+                    normY: Number(normY.toFixed(3)),
+                    swingForce: Number(swingForce.toFixed(2)),
+                    isTouchDrag: true,
+                    dash: (swingForce > 2.0)
+                });
+            };
+
+            pad.addEventListener('touchstart', (e) => {
+                lastTime = performance.now();
+                if (e.touches[0]) {
+                    const rect = pad.getBoundingClientRect();
+                    lastX = e.touches[0].clientX - rect.left;
+                    lastY = e.touches[0].clientY - rect.top;
+                }
+                handleTouch(e);
+            }, { passive: false });
+
+            pad.addEventListener('touchmove', handleTouch, { passive: false });
+
+            pad.addEventListener('touchend', (e) => {
+                if (e.cancelable) e.preventDefault();
+                if (dot) dot.style.display = 'none';
+            }, { passive: false });
+
+            pad.addEventListener('touchcancel', (e) => {
+                if (dot) dot.style.display = 'none';
+            }, { passive: false });
+        }
+
         function bindPingPongMouseListeners() {
             if (pingPongMouseBound) return;
             pingPongMouseBound = true;
 
-            const canvasContainer = document.getElementById('screen-game-2d');
-            if (!canvasContainer) return;
-
-            canvasContainer.addEventListener('mousemove', (e) => {
-                if (!pingPongActive || currentRoomState !== 'playing' || !pingPongCanvas) return;
-                const rect = pingPongCanvas.getBoundingClientRect();
+            // Direct window listener ensures mouse is NEVER blocked or lost
+            window.addEventListener('mousemove', (e) => {
+                if (!pingPongActive || currentRoomState !== 'playing') return;
                 pingPongMouse.active = true;
-                pingPongMouse.x = e.clientX - rect.left;
-                pingPongMouse.y = e.clientY - rect.top;
+                pingPongMouse.x = e.clientX;
+                pingPongMouse.y = e.clientY;
             });
 
-            canvasContainer.addEventListener('mousedown', (e) => {
+            window.addEventListener('mousedown', (e) => {
                 if (!pingPongActive || currentRoomState !== 'playing') return;
                 pingPongMouse.isSmash = true;
-                setTimeout(() => { pingPongMouse.isSmash = false; }, 220);
+                setTimeout(() => { pingPongMouse.isSmash = false; }, 240);
             });
 
             window.addEventListener('keydown', (e) => {
                 if (!pingPongActive || currentRoomState !== 'playing') return;
                 if (e.key === 'Shift' || e.code === 'Space') {
                     pingPongMouse.isSmash = true;
-                    setTimeout(() => { pingPongMouse.isSmash = false; }, 220);
+                    setTimeout(() => { pingPongMouse.isSmash = false; }, 240);
                 }
             });
         }
 
-        function initPingPongMatch(serverPlayers) {
+        function initPingPongMatch(serverPlayers = []) {
             cleanupActiveMatch();
 
             const container = document.getElementById('ping-pong-canvas-container');
@@ -2621,21 +2801,23 @@
             updatePingPongTableDimensions();
             bindPingPongMouseListeners();
 
-            const redTeam = serverPlayers.filter(p => p.team === 'left');
-            const blueTeam = serverPlayers.filter(p => p.team === 'right');
+            const redTeam = (serverPlayers || []).filter(p => p.team === 'left');
+            const blueTeam = (serverPlayers || []).filter(p => p.team === 'right');
+
+            // GUARANTEE DEFAULT PADDLES SO SCREEN CAN ALWAYS PLAY AND MOVE IMMEDIATELY
+            if (redTeam.length === 0) {
+                redTeam.push({ id: 'screen_player_red', name: (playerName || 'Player 1 (Mouse)'), team: 'left' });
+            }
+            if (blueTeam.length === 0) {
+                blueTeam.push({ id: 'screen_player_blue', name: 'Player 2 (Arrow Keys)', team: 'right' });
+            }
 
             pingPongPlayers = {};
             pingPongParticles = [];
 
-            // Identify local PC player for direct mouse steering
-            let assignedMouseId = null;
-            if (redTeam.length > 0) {
-                assignedMouseId = redTeam[0].id;
-            }
-
             redTeam.forEach((p, idx) => {
                 const count = redTeam.length;
-                const spawnX = pingPongTable.left + pingPongTable.width * (count > 1 ? (0.12 + idx * 0.1) : 0.18);
+                const spawnX = pingPongTable.left + (count > 1 ? (70 + idx * 70) : 100);
                 const spawnY = pingPongTable.centerY + ((idx - (count - 1) / 2) * (pingPongTable.height * 0.35));
 
                 pingPongPlayers[p.id] = {
@@ -2643,18 +2825,20 @@
                     colorHex: '#ef4444',
                     borderHex: '#991b1b',
                     x: spawnX, y: spawnY,
+                    lastX: spawnX, lastY: spawnY,
                     targetX: spawnX, targetY: spawnY,
-                    radius: 30,
+                    vx: 0, vy: 0, speed: 0,
+                    radius: 34,
                     facingDir: 'RIGHT',
                     moveX: 0, moveY: 0, dash: false,
-                    isMouseControlled: (p.id === assignedMouseId),
+                    isMouseControlled: (idx === 0), // First Red player can be guided by mouse on PC!
                     tiltAngle: 0
                 };
             });
 
             blueTeam.forEach((p, idx) => {
                 const count = blueTeam.length;
-                const spawnX = pingPongTable.right - pingPongTable.width * (count > 1 ? (0.12 + idx * 0.1) : 0.18);
+                const spawnX = pingPongTable.right - (count > 1 ? (70 + idx * 70) : 100);
                 const spawnY = pingPongTable.centerY + ((idx - (count - 1) / 2) * (pingPongTable.height * 0.35));
 
                 pingPongPlayers[p.id] = {
@@ -2662,8 +2846,10 @@
                     colorHex: '#06b6d4',
                     borderHex: '#0e7490',
                     x: spawnX, y: spawnY,
+                    lastX: spawnX, lastY: spawnY,
                     targetX: spawnX, targetY: spawnY,
-                    radius: 30,
+                    vx: 0, vy: 0, speed: 0,
+                    radius: 34,
                     facingDir: 'LEFT',
                     moveX: 0, moveY: 0, dash: false,
                     isMouseControlled: false,
@@ -2687,6 +2873,8 @@
             pingPongBall.vx = 0;
             pingPongBall.vy = 0;
             pingPongBall.vz = 0;
+            pingPongBall.spin = 0;
+            pingPongBall.netCooldown = 0;
             pingPongBall.rallyCount = 0;
             pingPongBall.lastHitterTeam = null;
 
@@ -2701,11 +2889,12 @@
                 else if (serveDirection === 'right') dirX = 1;
                 else dirX = Math.random() < 0.5 ? -1 : 1;
 
-                const baseSpeed = 8.5;
-                const launchAngle = (Math.random() * 0.6 - 0.3); // ~ -17° to +17°
+                const baseSpeed = 9.0;
+                const launchAngle = (Math.random() * 0.5 - 0.25); // ~ -14° to +14°
                 pingPongBall.vx = Math.cos(launchAngle) * baseSpeed * dirX;
                 pingPongBall.vy = Math.sin(launchAngle) * baseSpeed;
-                pingPongBall.vz = 3.5;
+                pingPongBall.vz = 3.6;
+                pingPongBall.spin = 0;
                 soundEngine.playWhistle();
             }, 3000);
         }
@@ -2720,6 +2909,7 @@
             pingPongBall.vx = 0;
             pingPongBall.vy = 0;
             pingPongBall.vz = 0;
+            pingPongBall.spin = 0;
 
             const targetTeamKey = scoringTeam === 'BLUE' ? 'blue' : 'red';
             socket.emit('goal_scored', { team: targetTeamKey });
@@ -2749,15 +2939,16 @@
             }, 1800);
         }
 
-        function spawnPingPongSpark(x, y, colorHex = '#ffffff') {
-            for (let i = 0; i < 8; i++) {
+        function spawnPingPongSpark(x, y, colorHex = '#ffffff', isBig = false) {
+            const count = isBig ? 16 : 8;
+            for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const spd = 2 + Math.random() * 5;
+                const spd = (isBig ? 4 : 2) + Math.random() * (isBig ? 8 : 4);
                 pingPongParticles.push({
                     x, y,
                     vx: Math.cos(angle) * spd,
                     vy: Math.sin(angle) * spd,
-                    radius: 2 + Math.random() * 3,
+                    radius: (isBig ? 3.5 : 2) + Math.random() * 3,
                     alpha: 1.0,
                     color: colorHex
                 });
@@ -2779,13 +2970,13 @@
             ctx.fill();
 
             // 2. Wooden Handle
-            const handleGrad = ctx.createLinearGradient(-48, -7, -20, 7);
+            const handleGrad = ctx.createLinearGradient(-50, -7, -20, 7);
             handleGrad.addColorStop(0, '#78350f');
             handleGrad.addColorStop(0.5, '#d97706');
             handleGrad.addColorStop(1, '#92400e');
             ctx.fillStyle = handleGrad;
             ctx.beginPath();
-            ctx.roundRect(-46, -6, 26, 12, [4, 2, 2, 4]);
+            ctx.roundRect(-48, -7, 28, 14, [4, 2, 2, 4]);
             ctx.fill();
             ctx.strokeStyle = '#451a03';
             ctx.lineWidth = 1.5;
@@ -2795,8 +2986,8 @@
             ctx.strokeStyle = '#fef3c7';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-34, -6);
-            ctx.lineTo(-34, 6);
+            ctx.moveTo(-36, -7);
+            ctx.lineTo(-36, 7);
             ctx.stroke();
 
             // 3. Wooden Blade Rim Underlay
@@ -2824,12 +3015,12 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Smash / Boost Glow Aura
-            if (p.dash) {
+            // High Force / Smash Glow Aura
+            if (p.dash || (p.speed && p.speed > 8)) {
                 ctx.strokeStyle = '#fbbf24';
                 ctx.lineWidth = 4;
                 ctx.shadowColor = '#f59e0b';
-                ctx.shadowBlur = 15;
+                ctx.shadowBlur = 18;
                 ctx.stroke();
                 ctx.shadowBlur = 0;
             }
@@ -2844,7 +3035,7 @@
             ctx.shadowColor = '#000000';
             ctx.shadowBlur = 6;
             ctx.fillText(p.name, p.x, p.y - p.radius - 14);
-            if (p.isMouseControlled) {
+            if (p.isMouseControlled && isScreenMode) {
                 ctx.font = '800 10px Montserrat, sans-serif';
                 ctx.fillStyle = '#fde047';
                 ctx.fillText('MOUSE PADDLE', p.x, p.y - p.radius - 28);
@@ -2953,62 +3144,92 @@
             pingPongCtx.fillRect(t.centerX - 5, t.bottom + 8, 10, 12);
             pingPongCtx.strokeRect(t.centerX - 5, t.bottom + 8, 10, 12);
 
-            // 6. Update Players & Steer Paddles
+            // 6. Update Players & Steer Paddles (Freehand Movement Anywhere on Screen!)
             if (!isPausedByAdmin) {
                 Object.values(pingPongPlayers).forEach(p => {
+                    const prevX = p.x;
+                    const prevY = p.y;
+
                     // Direct PC Mouse Control for assigned player
                     if (p.isMouseControlled && pingPongMouse.active) {
                         if (p.team === 'left') {
-                            p.targetX = Math.max(t.left + 24, Math.min(t.centerX - 36, pingPongMouse.x));
-                            p.targetY = Math.max(t.top + 24, Math.min(t.bottom - 24, pingPongMouse.y));
+                            p.targetX = Math.max(20, Math.min(t.centerX - 12, pingPongMouse.x));
+                            p.targetY = Math.max(20, Math.min(h - 20, pingPongMouse.y));
                         } else {
-                            p.targetX = Math.max(t.centerX + 36, Math.min(t.right - 24, pingPongMouse.x));
-                            p.targetY = Math.max(t.top + 24, Math.min(t.bottom - 24, pingPongMouse.y));
+                            p.targetX = Math.max(t.centerX + 12, Math.min(w - 20, pingPongMouse.x));
+                            p.targetY = Math.max(20, Math.min(h - 20, pingPongMouse.y));
                         }
-                        const prevY = p.y;
-                        p.x += (p.targetX - p.x) * 0.85;
-                        p.y += (p.targetY - p.y) * 0.85;
-                        p.tiltAngle = Math.max(-0.35, Math.min(0.35, (p.y - prevY) * 0.04));
+                        p.x += (p.targetX - p.x) * 0.94;
+                        p.y += (p.targetY - p.y) * 0.94;
+                        if (pingPongMouse.isSmash) p.dash = true;
+                    } else if (p.targetX !== undefined && p.targetY !== undefined && (p.targetX !== p.x || p.targetY !== p.y)) {
+                        // Freehand Smartphone Touchpad / Socket Target
+                        p.x += (p.targetX - p.x) * 0.90;
+                        p.y += (p.targetY - p.y) * 0.90;
                     } else {
-                        // Optional Local Keyboard Support on PC screen (Arrow Keys for Player 2 / Blue Team)
-                        if (isScreenMode && p.team === 'right') {
-                            let kx = 0, ky = 0;
-                            if (keysPressed['arrowup']) ky -= 1;
-                            if (keysPressed['arrowdown']) ky += 1;
-                            if (keysPressed['arrowleft']) kx -= 1;
-                            if (keysPressed['arrowright']) kx += 1;
-                            if (kx !== 0 || ky !== 0) {
-                                p.moveX = kx;
-                                p.moveY = ky;
-                                p.dash = !!(keysPressed['enter'] || keysPressed['control']);
+                        // Local Keyboard Support on PC screen (WASD for Left/Red, Arrow Keys for Right/Blue)
+                        if (isScreenMode) {
+                            if (p.team === 'left' && !pingPongMouse.active) {
+                                let kx = 0, ky = 0;
+                                if (keysPressed['w']) ky -= 1;
+                                if (keysPressed['s']) ky += 1;
+                                if (keysPressed['a']) kx -= 1;
+                                if (keysPressed['d']) kx += 1;
+                                if (kx !== 0 || ky !== 0) {
+                                    p.moveX = kx;
+                                    p.moveY = ky;
+                                    p.dash = !!(keysPressed['shift']);
+                                }
+                            } else if (p.team === 'right') {
+                                let kx = 0, ky = 0;
+                                if (keysPressed['arrowup']) ky -= 1;
+                                if (keysPressed['arrowdown']) ky += 1;
+                                if (keysPressed['arrowleft']) kx -= 1;
+                                if (keysPressed['arrowright']) kx += 1;
+                                if (kx !== 0 || ky !== 0) {
+                                    p.moveX = kx;
+                                    p.moveY = ky;
+                                    p.dash = !!(keysPressed['enter'] || keysPressed['control'] || keysPressed['space']);
+                                }
                             }
                         }
 
                         // Gamepad / Joystick / Keyboard Navigation
-                        const speed = p.dash ? 13.5 : 8.0;
+                        const speed = p.dash ? 15.0 : 9.5;
                         p.x += p.moveX * speed;
                         p.y += p.moveY * speed;
-                        p.tiltAngle = p.moveY * 0.28;
 
-                        // Clamping to team half
-                        p.y = Math.max(t.top + 24, Math.min(t.bottom - 24, p.y));
+                        // Freehand Clamping: can move ANYWHERE on screen, inside or outside table!
                         if (p.team === 'left') {
-                            p.x = Math.max(t.left + 24, Math.min(t.centerX - 36, p.x));
+                            p.x = Math.max(20, Math.min(t.centerX - 12, p.x));
                         } else {
-                            p.x = Math.max(t.centerX + 36, Math.min(t.right - 24, p.x));
+                            p.x = Math.max(t.centerX + 12, Math.min(w - 20, p.x));
                         }
+                        p.y = Math.max(20, Math.min(h - 20, p.y));
                     }
+
+                    // Physical Velocity & Swing Speed
+                    p.vx = p.x - prevX;
+                    p.vy = p.y - prevY;
+                    p.speed = Math.hypot(p.vx, p.vy);
+                    p.tiltAngle = Math.max(-0.4, Math.min(0.4, p.vy * 0.05));
 
                     drawPingPongRacket(pingPongCtx, p);
                 });
             }
 
-            // 7. Ball Physics & 3D Loft Mechanics
+            // 7. Ball Physics, Real Force Transfer, & Net Protection
             if (!isPausedByAdmin && !isKickoffCounting && !isGoalCelebrating) {
                 pingPongBall.x += pingPongBall.vx;
                 pingPongBall.y += pingPongBall.vy;
                 pingPongBall.z += pingPongBall.vz;
                 pingPongBall.vz -= 0.26; // Gravity
+
+                // Spin aerodynamic curving in mid-air
+                if (pingPongBall.spin) {
+                    pingPongBall.y += pingPongBall.spin;
+                    pingPongBall.spin *= 0.98;
+                }
 
                 // Table Surface Bounce Detection (Plane z = 0)
                 const isOverTable = (
@@ -3022,67 +3243,99 @@
                     if (isOverTable) {
                         pingPongBall.z = 0;
                         const impactSpeed = Math.abs(pingPongBall.vz);
-                        pingPongBall.vz = Math.max(2.2, impactSpeed * 0.82 + 1.2);
+                        pingPongBall.vz = Math.max(2.4, impactSpeed * 0.82 + 1.2);
                         soundEngine.playTableBounce(Math.abs(pingPongBall.vx) / 8.0);
-                        spawnPingPongSpark(pingPongBall.x, pingPongBall.y, '#93c5fd');
-                    } else {
-                        // Off Table Out of Bounds -> Point for Opponent!
-                        if (pingPongBall.x < t.left - 20) {
+                        spawnPingPongSpark(pingPongBall.x, pingPongBall.y, '#93c5fd', false);
+                    } else if (pingPongBall.z < -25) {
+                        // Ball hit the ground outside the table!
+                        if (pingPongBall.x < t.left) {
                             triggerPingPongPointSequence('BLUE');
-                        } else if (pingPongBall.x > t.right + 20) {
+                        } else if (pingPongBall.x > t.right) {
                             triggerPingPongPointSequence('RED');
-                        } else if (pingPongBall.y < t.top - 25 || pingPongBall.y > t.bottom + 25) {
+                        } else if (pingPongBall.y < t.top || pingPongBall.y > t.bottom) {
                             const awardingTeam = (pingPongBall.lastHitterTeam === 'left') ? 'BLUE' : 'RED';
                             triggerPingPongPointSequence(awardingTeam);
                         }
                     }
                 }
 
-                // Table Net Collision Check (x = centerX, height = 22)
+                // FIX: Center Net Collision (Never gets stuck!)
                 const distToNet = Math.abs(pingPongBall.x - t.centerX);
-                if (distToNet < 6 && pingPongBall.z < 20) {
-                    soundEngine.playNetClip();
-                    pingPongBall.vx = -pingPongBall.vx * 0.38;
-                    pingPongBall.vz = Math.max(1.0, pingPongBall.vz * 0.5);
-                    spawnPingPongSpark(t.centerX, pingPongBall.y, '#ffffff');
+                if (distToNet < 9 && pingPongBall.z < 22) {
+                    if (!pingPongBall.netCooldown) {
+                        pingPongBall.netCooldown = 15; // 15 frame cooldown prevents multi-triggering
+                        soundEngine.playNetClip();
+
+                        const canTumbleOver = (Math.abs(pingPongBall.vx) > 7.0 || pingPongBall.z > 14);
+                        if (canTumbleOver) {
+                            // Net Cord / Let shot: tumbles over net to opponent's side!
+                            const dir = pingPongBall.vx > 0 ? 1 : -1;
+                            pingPongBall.x = t.centerX + (dir * 12);
+                            pingPongBall.vx *= 0.68;
+                            pingPongBall.vz = Math.max(1.8, pingPongBall.vz * 0.6);
+                        } else {
+                            // Cleanly rebounds back to the same court side
+                            if (pingPongBall.vx > 0) {
+                                pingPongBall.x = t.centerX - 12;
+                                pingPongBall.vx = -Math.abs(pingPongBall.vx) * 0.45 - 2.5;
+                            } else {
+                                pingPongBall.x = t.centerX + 12;
+                                pingPongBall.vx = Math.abs(pingPongBall.vx) * 0.45 + 2.5;
+                            }
+                            pingPongBall.vz = Math.max(1.2, pingPongBall.vz * 0.5);
+                        }
+                        spawnPingPongSpark(t.centerX, pingPongBall.y, '#ffffff', false);
+                    }
+                }
+                if (pingPongBall.netCooldown > 0) {
+                    pingPongBall.netCooldown--;
                 }
 
-                // Paddle Collision Check
+                // Paddle Collision with Real Physics Force Transfer!
                 Object.values(pingPongPlayers).forEach(p => {
                     const dx = pingPongBall.x - p.x;
                     const dy = pingPongBall.y - p.y;
                     const dist = Math.hypot(dx, dy);
 
-                    if (dist < (p.radius + pingPongBall.radius + 4)) {
-                        // Prevent multi-triggering in same direction
-                        if ((p.team === 'left' && pingPongBall.vx <= 0) || (p.team === 'right' && pingPongBall.vx >= 0)) {
-                            const hitOffset = Math.max(-1.0, Math.min(1.0, dy / p.radius));
-                            const deflectionAngle = hitOffset * 0.72; // ~41° max angle
+                    if (dist < (p.radius + pingPongBall.radius + 6)) {
+                        // Direction check: Left paddle hits ball heading left, Right paddle hits ball heading right
+                        const isApproaching = (p.team === 'left' && pingPongBall.vx <= 0.5) ||
+                                              (p.team === 'right' && pingPongBall.vx >= -0.5);
 
-                            let hitSpeed = 9.8 + Math.min(8.0, pingPongBall.rallyCount * 0.35);
-                            if (p.dash) {
-                                hitSpeed *= 1.48; // Smash boost!
-                                spawnPingPongSpark(p.x, p.y, '#f59e0b');
-                            }
+                        if (isApproaching) {
+                            const hitOffset = Math.max(-1.0, Math.min(1.0, dy / p.radius));
+                            const deflectionAngle = hitOffset * 0.75; // ~43° angle
+
+                            // PHYSICAL FORCE TRANSFER BASED ON RACKET SWING VELOCITY!
+                            const swingSpeed = p.speed || 0;
+                            const baseSpeed = 9.2 + Math.min(6.0, pingPongBall.rallyCount * 0.35);
+                            const forceMultiplier = 1.0 + Math.min(2.5, swingSpeed * 0.14) + (p.dash ? 0.7 : 0);
+                            const hitSpeed = baseSpeed * forceMultiplier;
 
                             const dirX = (p.team === 'left' ? 1 : -1);
-                            pingPongBall.vx = Math.cos(deflectionAngle) * hitSpeed * dirX;
-                            pingPongBall.vy = Math.sin(deflectionAngle) * hitSpeed + (p.moveY * 1.5);
-                            pingPongBall.vz = 3.8 + (p.dash ? 2.0 : 0);
+                            // Transfer horizontal racket swing momentum directly into ball:
+                            pingPongBall.vx = Math.cos(deflectionAngle) * hitSpeed * dirX + (p.vx * 0.5);
+                            // Transfer vertical racket swing and deflection:
+                            pingPongBall.vy = Math.sin(deflectionAngle) * hitSpeed + (p.vy * 0.65);
+                            // Impart slice spin to curve trajectory:
+                            pingPongBall.spin = p.vy * 0.22;
+                            // Upward loft:
+                            pingPongBall.vz = 3.6 + Math.min(3.6, swingSpeed * 0.18) + (p.dash ? 2.0 : 0);
 
                             pingPongBall.rallyCount++;
                             pingPongBall.lastHitterTeam = p.team;
 
-                            soundEngine.playPaddleHit(hitSpeed / 10.0);
-                            spawnPingPongSpark(pingPongBall.x, pingPongBall.y, p.colorHex);
+                            // Sound & visual effects scale with hit force!
+                            soundEngine.playPaddleHit(Math.min(2.2, forceMultiplier));
+                            spawnPingPongSpark(pingPongBall.x, pingPongBall.y, p.colorHex, (p.dash || swingSpeed > 9));
                         }
                     }
                 });
 
                 // End-line baseline misses
-                if (pingPongBall.x < t.left - 45) {
+                if (pingPongBall.x < -30) {
                     triggerPingPongPointSequence('BLUE');
-                } else if (pingPongBall.x > t.right + 45) {
+                } else if (pingPongBall.x > w + 30) {
                     triggerPingPongPointSequence('RED');
                 }
             }
@@ -3136,12 +3389,14 @@
             }
 
             // 10. PC Controls Hint Pill (at bottom center)
-            pingPongCtx.save();
-            pingPongCtx.font = '700 11px Montserrat, sans-serif';
-            pingPongCtx.textAlign = 'center';
-            pingPongCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-            pingPongCtx.fillText('🖱️ MOVE MOUSE TO CONTROL PADDLE  |  CLICK OR [SPACE] TO SMASH', w / 2, h - 16);
-            pingPongCtx.restore();
+            if (isScreenMode) {
+                pingPongCtx.save();
+                pingPongCtx.font = '700 11px Montserrat, sans-serif';
+                pingPongCtx.textAlign = 'center';
+                pingPongCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                pingPongCtx.fillText('🖱️ MOVE MOUSE TO CONTROL PADDLE  |  CLICK OR [SPACE] TO SMASH', w / 2, h - 16);
+                pingPongCtx.restore();
+            }
 
             pingPongAnimId = requestAnimationFrame(renderPingPongLoop);
         }
@@ -3157,7 +3412,8 @@
 
         let ballPhysics = { x: 0, y: 1.6, z: 0, vx: 0, vy: 0, vz: 0, equippedBy: null };
 
-        socket.on('player_move', ({ id, moveX, moveY, pass, shoot, dash, shootPower, isChargingShot }) => {
+        socket.on('player_move', (data) => {
+            const { id, moveX, moveY, pass, shoot, dash, shootPower, isChargingShot, normX, normY, swingForce, isTouchDrag } = data;
             if (threePlayers[id]) {
                 threePlayers[id].moveX = moveX; threePlayers[id].moveY = moveY;
                 threePlayers[id].pass = pass; threePlayers[id].shoot = shoot;
@@ -3171,9 +3427,26 @@
                 spacessPlayers[id].dash = dash;
             }
             if (pingPongPlayers[id]) {
-                pingPongPlayers[id].moveX = moveX;
-                pingPongPlayers[id].moveY = moveY;
-                pingPongPlayers[id].dash = dash;
+                const p = pingPongPlayers[id];
+                if (isTouchDrag && typeof normX === 'number' && typeof normY === 'number') {
+                    const w = pingPongCanvas ? pingPongCanvas.width : window.innerWidth;
+                    const h = pingPongCanvas ? pingPongCanvas.height : window.innerHeight;
+                    const netX = pingPongTable ? pingPongTable.centerX : (w / 2);
+
+                    if (p.team === 'left') {
+                        p.targetX = 20 + normX * (netX - 35);
+                        p.targetY = 20 + normY * (h - 40);
+                    } else {
+                        p.targetX = (netX + 15) + normX * (w - netX - 35);
+                        p.targetY = 20 + normY * (h - 40);
+                    }
+                    p.swingForce = swingForce || 1.0;
+                    p.dash = !!dash || (p.swingForce > 1.8);
+                } else {
+                    p.moveX = moveX;
+                    p.moveY = moveY;
+                    p.dash = dash;
+                }
             }
         });
 

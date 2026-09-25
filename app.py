@@ -318,7 +318,11 @@ def handle_controller_input(data):
                 'shoot': p['shoot'],
                 'dash': p['dash'],
                 'shootPower': p['shootPower'],
-                'isChargingShot': p['isChargingShot']
+                'isChargingShot': p['isChargingShot'],
+                'normX': data.get('normX', None),
+                'normY': data.get('normY', None),
+                'swingForce': data.get('swingForce', 1.0),
+                'isTouchDrag': data.get('isTouchDrag', False)
             }, to=room['screen_sid'])
             break
 
