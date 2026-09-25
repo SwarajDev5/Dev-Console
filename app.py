@@ -390,6 +390,17 @@ def _broadcast_room_update(code):
             'catalog': GAMES_CATALOG
         }, to=code)
 
+@app.route('/favicon.ico')
+def favicon():
+    fav_path = os.path.join(app.static_folder, 'favicon.ico')
+    if os.path.exists(fav_path):
+        return send_from_directory(app.static_folder, 'favicon.ico')
+    return ('', 204)
+
+# Vercel & WSGI Entrypoint Exporter
+app = app
+application = app
+
 if __name__ == '__main__':
     print(f"[Dev Console Server] Running on http://0.0.0.0:5000 (Local IP: {get_local_ip()})")
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

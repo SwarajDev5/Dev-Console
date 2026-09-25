@@ -1,0 +1,10 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+*.zip
+Gemini2.zip
+setup_firewall.bat
+assets/3dstadium/stadium.glb
+assets/ball/*.zip
+assets/ball/*.skp

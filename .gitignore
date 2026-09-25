@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.class
@@ -12,6 +12,7 @@ venv/
 assets/3dstadium/stadium.glb
 assets/ball/*.zip
 assets/ball/*.skp
+*.zip
 
 # OS & IDE
 .DS_Store
