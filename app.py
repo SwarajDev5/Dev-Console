@@ -26,7 +26,7 @@ GAMES_CATALOG = [
     {
         'id': 'dev_goal',
         'title': 'DevGoal!',
-        'category': 'Featured Arcade',
+        'category': 'PARTY ARCADE',
         'subtitle': '2x Mega 3D Stadium Football',
         'playersText': '1-4 Players',
         'badge': '3D STADIUM',
@@ -37,7 +37,7 @@ GAMES_CATALOG = [
     {
         'id': 'spacess',
         'title': 'Spacess',
-        'category': 'Sci-Fi Arcade',
+        'category': 'PARTY ARCADE',
         'subtitle': '2D Cosmic Table Tennis (2-6 Players)',
         'playersText': '2-6 Players (Versus)',
         'badge': 'SPACE MULTIPLAYER',
@@ -48,7 +48,7 @@ GAMES_CATALOG = [
     {
         'id': 'ping_pong',
         'title': 'Ping Pong',
-        'category': 'Sports Arcade',
+        'category': 'PARTY ARCADE',
         'subtitle': 'Classic Table Tennis (1-4 Players)',
         'playersText': '1-4 Players (Singles / Doubles)',
         'badge': 'MOUSE & CONTROLLER',
@@ -67,6 +67,16 @@ def generate_room_code():
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
+
+@app.route('/api/lan-info')
+def lan_info():
+    ip = get_local_ip()
+    return {
+        'ip': ip,
+        'port': 5000,
+        'url': f"http://{ip}:5000",
+        'hostname': socket.gethostname()
+    }
 
 @app.route('/assets/<path:filename>')
 def serve_assets(filename):
@@ -95,6 +105,7 @@ def handle_create_room():
     emit('room_created', {
         'code': code,
         'localIp': local_ip,
+        'directUrl': f"http://{local_ip}:5000?code={code}",
         'catalog': GAMES_CATALOG,
         'selectedGame': 'dev_goal'
     })
@@ -371,6 +382,7 @@ def _broadcast_room_update(code):
             'paused': room['paused'],
             'timerFrozen': room.get('timer_frozen', False),
             'localIp': room['local_ip'],
+            'directUrl': f"http://{room['local_ip']}:5000?code={code}",
             'catalog': GAMES_CATALOG
         }, to=code)
 
