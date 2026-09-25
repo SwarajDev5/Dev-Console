@@ -7,7 +7,7 @@ from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = 'dev-console-secret-key-2026'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 active_rooms = {}
 AVATAR_COLORS = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7', '#ec4899', '#f97316', '#06b6d4']
@@ -30,8 +30,8 @@ GAMES_CATALOG = [
         'subtitle': '2x Mega 3D Stadium Football',
         'playersText': '1-4 Players',
         'badge': '3D STADIUM',
-        'thumbnail': 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&auto=format&fit=crop',
-        'gameplayGif': 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&auto=format&fit=crop',
+        'thumbnail': '/assets/images/devgoal_cover.jpg',
+        'gameplayGif': '/assets/images/devgoal_cover.jpg',
         'description': '2x Mega 3D Stadium with GLTF miniplayer GLB models, animated running/dashing/knockdown states, realistic sky atmosphere, dynamic pitch markings, waving flags, and 240s match timer.'
     },
     {
@@ -41,8 +41,8 @@ GAMES_CATALOG = [
         'subtitle': '2D Cosmic Table Tennis (2-6 Players)',
         'playersText': '2-6 Players (Versus)',
         'badge': 'SPACE MULTIPLAYER',
-        'thumbnail': 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=600&auto=format&fit=crop',
-        'gameplayGif': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop',
+        'thumbnail': '/assets/images/spacess_cover.jpg',
+        'gameplayGif': '/assets/images/spacess_cover.jpg',
         'description': 'Deep black VOID space table tennis featuring Alien Spaceship paddles, 6-player multi-column arenas, big solo spaceship auto-balance for 3 players, and plasma ball rally physics.'
     },
     {
@@ -52,8 +52,8 @@ GAMES_CATALOG = [
         'subtitle': 'Classic Table Tennis (1-4 Players)',
         'playersText': '1-4 Players (Singles / Doubles)',
         'badge': 'MOUSE & CONTROLLER',
-        'thumbnail': 'https://images.unsplash.com/photo-1534158914592-062992fbe900?w=600&auto=format&fit=crop',
-        'gameplayGif': 'https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=1200&auto=format&fit=crop',
+        'thumbnail': '/assets/images/pingpong_cover.jpg',
+        'gameplayGif': '/assets/images/pingpong_cover.jpg',
         'description': 'Classic Table Tennis inspired by 1 2 3 4 Player Games! Direct PC mouse paddle control, spin deflection, authentic wooden table acoustics, 3D ball loft, and smash bursts.'
     }
 ]
@@ -77,6 +77,10 @@ def lan_info():
         'url': f"http://{ip}:5000",
         'hostname': socket.gethostname()
     }
+
+@app.route('/ping')
+def ping():
+    return {'status': 'ok', 'lan_ip': get_local_ip(), 'port': 5000}
 
 @app.route('/assets/<path:filename>')
 def serve_assets(filename):

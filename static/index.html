@@ -54,21 +54,45 @@
             position: relative;
         }
 
-        /* AMBIENT CARTOON ARCADE MESH GLOW BACKGROUND */
+        /* AMBIENT CRAZY CARTOON ARCADE BACKGROUND & COMIC HALFTONE */
         body::before {
-            content: ''; position: fixed; inset: -30%; width: 160%; height: 160%;
-            background: radial-gradient(circle at 20% 25%, rgba(244, 63, 94, 0.12) 0%, transparent 40%),
-                        radial-gradient(circle at 80% 75%, rgba(56, 189, 248, 0.12) 0%, transparent 40%),
-                        radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
-                        radial-gradient(circle at 75% 20%, rgba(251, 191, 36, 0.08) 0%, transparent 35%);
+            content: ''; position: fixed; inset: 0; width: 100%; height: 100%;
+            background-color: var(--bg-black);
+            background-image: 
+                radial-gradient(circle, rgba(255, 255, 255, 0.07) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 18% 22%, rgba(244, 63, 94, 0.16) 0%, transparent 42%),
+                radial-gradient(circle at 82% 78%, rgba(56, 189, 248, 0.16) 0%, transparent 42%),
+                radial-gradient(circle at 50% 12%, rgba(251, 191, 36, 0.12) 0%, transparent 38%),
+                radial-gradient(circle at 75% 28%, rgba(168, 85, 247, 0.12) 0%, transparent 40%);
+            background-size: 26px 26px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
             pointer-events: none; z-index: 0;
-            animation: ambientDrift 22s ease-in-out infinite alternate;
+            animation: ambientComicPulse 18s ease-in-out infinite alternate;
         }
-        @keyframes ambientDrift {
-            0% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(-25px, 20px) scale(1.04); }
-            100% { transform: translate(20px, -20px) scale(1); }
+        @keyframes ambientComicPulse {
+            0% { filter: hue-rotate(0deg) brightness(1); }
+            50% { filter: hue-rotate(15deg) brightness(1.08); }
+            100% { filter: hue-rotate(-15deg) brightness(1); }
         }
+
+        /* LIGHTWEIGHT FLOATING CARTOON PARTICLES */
+        .cartoon-ambient-particles {
+            position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden;
+        }
+        .ambient-float-item {
+            position: absolute; opacity: 0.14; color: #ffffff;
+            animation: floatArcadeItem 14s ease-in-out infinite alternate;
+        }
+        .float-item-1 { top: 12%; left: 8%; animation-duration: 16s; color: #fde047; }
+        .float-item-2 { top: 75%; left: 14%; animation-duration: 13s; color: #38bdf8; }
+        .float-item-3 { top: 22%; right: 10%; animation-duration: 19s; color: #f43f5e; }
+        .float-item-4 { top: 80%; right: 12%; animation-duration: 15s; color: #4ade80; }
+        .float-item-5 { top: 48%; left: 4%; animation-duration: 22s; color: #c084fc; }
+        @keyframes floatArcadeItem {
+            0% { transform: translateY(0px) rotate(0deg) scale(1); }
+            50% { transform: translateY(-30px) rotate(18deg) scale(1.15); }
+            100% { transform: translateY(15px) rotate(-15deg) scale(0.92); }
+        }
+        .ambient-svg { width: 34px; height: 34px; fill: currentColor; }
 
         .hidden { display: none !important; }
         .flex-center { display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -281,20 +305,24 @@
         .scanner-poster-card {
             width: 220px; height: 220px; border-radius: 26px; border: 4px solid #000000;
             overflow: hidden; position: relative; box-shadow: 0 8px 0 #000000, 0 16px 30px rgba(0,0,0,0.7);
-            background: #000000; cursor: pointer; transition: transform 0.2s ease;
+            background: #000000; cursor: pointer;
+            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
         }
-        .scanner-poster-card:hover { transform: scale(1.03); }
-        .scanner-poster-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .scanner-secret-overlay {
-            position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.88) 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 14px; gap: 8px;
+        .scanner-poster-card:hover {
+            transform: scale(1.05) rotate(-1deg);
+            box-shadow: 0 12px 0 #000000, 0 0 35px rgba(250, 204, 21, 0.55);
         }
-        .secret-shield-badge {
-            background: #f43f5e; color: #ffffff; font-family: var(--font-cartoon); font-weight: 800;
-            font-size: 0.78rem; padding: 4px 12px; border-radius: 12px; border: 2px solid #000000;
-            display: flex; align-items: center; gap: 6px; box-shadow: 0 3px 0 #000000;
+        .scanner-poster-card:active {
+            transform: scale(0.97) translateY(4px);
+            box-shadow: 0 2px 0 #000000;
         }
-        .secret-hint-pill { font-family: var(--font-cartoon); font-size: 0.82rem; font-weight: 800; color: #fde047; text-shadow: 0 2px 4px #000; }
+        .scanner-poster-img {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+            transition: transform 0.3s ease;
+        }
+        .scanner-poster-card:hover .scanner-poster-img {
+            transform: scale(1.04);
+        }
 
         .cartoon-qr-shell {
             padding: 16px; background: #ffffff; border: 4px solid #000000; border-radius: 26px;
@@ -328,6 +356,11 @@
         .chunky-copy-btn:hover { transform: translateY(-2px); }
         .chunky-copy-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
         .scanner-wifi-tip { color: var(--text-muted); font-size: 0.88rem; margin-top: 10px; font-weight: 700; text-align: center; }
+        .lan-port-warning {
+            background: #facc15; color: #000000; font-family: var(--font-cartoon); font-weight: 900;
+            font-size: 0.76rem; padding: 2px 8px; border-radius: 8px; border: 1.5px solid #000;
+            display: inline-block; vertical-align: middle;
+        }
 
         .player-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; width: 100%; margin-top: 16px; }
         .player-card-item {
@@ -550,16 +583,24 @@
             text-align: center; text-transform: uppercase;
         }
 
-        /* CARTOON ARCADE SCOREBOARD HUD & TIMER WITH BOUNCY SPRING POP */
+        /* CRAZY CARTOON ARCADE SCOREBOARD HUD & TIMER */
         #screenshot-hud {
-            position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
             display: flex; flex-direction: column; align-items: center; z-index: 200; pointer-events: none;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.8));
+        }
+        .hud-top-marquee-badge {
+            background: linear-gradient(180deg, #ff2a85 0%, #e11d48 100%);
+            color: #ffffff; font-family: var(--font-cartoon); font-size: 0.88rem; font-weight: 900;
+            letter-spacing: 2px; text-transform: uppercase; padding: 3px 18px; border-radius: 12px;
+            border: 2.5px solid #000000; box-shadow: 0 4px 0 #000000; margin-bottom: -6px; z-index: 10;
+            transform: skewX(-5deg);
         }
         .score-board-row {
             display: flex; align-items: center;
-            background: linear-gradient(180deg, #1b2034 0%, #101424 100%);
-            border: 3.5px solid #2d354d; border-radius: 26px; padding: 6px 22px;
-            box-shadow: 0 8px 0 #000000, 0 16px 35px rgba(0,0,0,0.85); gap: 14px; backdrop-filter: blur(12px);
+            background: linear-gradient(180deg, #1b2038 0%, #0d101d 100%);
+            border: 4px solid #000000; border-radius: 28px; padding: 8px 24px;
+            box-shadow: 0 10px 0 #000000, 0 18px 40px rgba(0,0,0,0.85); gap: 14px; backdrop-filter: blur(12px);
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .score-board-row.score-pop {
@@ -567,44 +608,53 @@
         }
         @keyframes cartoonScoreBounce {
             0% { transform: scale(1); }
-            35% { transform: scale(1.35) rotate(-2deg); }
-            70% { transform: scale(0.95) rotate(2deg); }
+            35% { transform: scale(1.3) rotate(-3deg); }
+            70% { transform: scale(0.96) rotate(2deg); }
             100% { transform: scale(1) rotate(0); }
         }
 
         .team-hud-tag {
             font-family: var(--font-cartoon); font-size: 1.35rem; font-weight: 900; letter-spacing: 1px;
-            display: flex; align-items: center; gap: 6px;
+            display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 14px;
+            border: 2px solid #000000;
         }
-        .team-hud-tag.red-tag { color: #f43f5e; text-shadow: 0 2px 8px rgba(244, 63, 94, 0.5); }
-        .team-hud-tag.blue-tag { color: #38bdf8; text-shadow: 0 2px 8px rgba(56, 189, 248, 0.5); }
+        .team-hud-tag.red-tag {
+            background: linear-gradient(180deg, #ff2a5f 0%, #dc2626 100%);
+            color: #ffffff; box-shadow: 0 3px 0 #000000; text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+        }
+        .team-hud-tag.blue-tag {
+            background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+            color: #ffffff; box-shadow: 0 3px 0 #000000; text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+        }
 
         .score-digit-box {
-            background: #090c16; border: 3px solid #2d354d; border-radius: 16px;
-            width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-cartoon); font-size: 2.2rem; font-weight: 900;
-            box-shadow: inset 0 4px 8px rgba(0,0,0,0.8), 0 3px 0 rgba(255,255,255,0.08);
+            background: #060810; border: 3.5px solid #2d354d; border-radius: 18px;
+            width: 62px; height: 62px; display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-cartoon); font-size: 2.5rem; font-weight: 900;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.9), 0 3px 0 rgba(255,255,255,0.1);
             transition: all 0.2s ease;
         }
-        #hud-score-red { color: #f43f5e; }
-        #hud-score-blue { color: #38bdf8; }
+        #hud-score-red { color: #ff3b69; text-shadow: 0 0 16px rgba(255, 59, 105, 0.6); }
+        #hud-score-blue { color: #38bdf8; text-shadow: 0 0 16px rgba(56, 189, 248, 0.6); }
 
-        .score-vs-divider {
-            font-family: var(--font-cartoon); font-size: 0.95rem; font-weight: 900;
-            color: #94a3b8; padding: 2px 6px;
+        .score-vs-star-pill {
+            background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+            color: #000000; font-family: var(--font-cartoon); font-size: 1.05rem; font-weight: 900;
+            border: 2.5px solid #000000; border-radius: 12px; padding: 3px 10px;
+            box-shadow: 0 3px 0 #000000; transform: rotate(-5deg);
         }
 
         .timer-banner-box {
-            background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
-            border: 3.5px solid #000000; border-radius: 14px;
-            padding: 3px 22px; margin-top: -8px; display: flex; align-items: center; gap: 8px;
+            background: linear-gradient(180deg, #ffe600 0%, #f59e0b 100%);
+            border: 3.5px solid #000000; border-radius: 16px;
+            padding: 4px 24px; margin-top: -8px; display: flex; align-items: center; gap: 8px;
             box-shadow: 0 6px 0 #000000, 0 10px 20px rgba(0,0,0,0.6);
-            transform: skewX(-6deg);
+            transform: skewX(-7deg);
         }
-        .timer-text-main { font-family: var(--font-cartoon); font-size: 1.5rem; font-weight: 900; color: #000000; letter-spacing: 1px; }
+        .timer-text-main { font-family: var(--font-cartoon); font-size: 1.6rem; font-weight: 900; color: #000000; letter-spacing: 1px; }
         .timer-mode-badge {
-            background: #000000; color: #fde047; font-family: var(--font-cartoon);
-            font-size: 0.78rem; font-weight: 900; padding: 2px 8px; border-radius: 8px;
+            background: #000000; color: #ffe600; font-family: var(--font-cartoon);
+            font-size: 0.8rem; font-weight: 900; padding: 2px 8px; border-radius: 8px;
         }
 
         /* BOTTOM-LEFT SHADERS & COLORS EXPAND BUTTON */
@@ -625,8 +675,8 @@
 
         /* GOAL CELEBRATION OVERLAY WITH BLUR BACKDROP & TILTED VS DIVIDER */
         #goal-celebration-overlay {
-            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(4px); z-index: 350; display: flex; align-items: center;
+            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px); z-index: 350; display: flex; align-items: center;
             justify-content: center; pointer-events: none; opacity: 0; transition: opacity 0.3s ease;
         }
         #goal-celebration-overlay.show-overlay { opacity: 1; }
@@ -638,19 +688,32 @@
         #goal-celebration-overlay.show-overlay .goal-match-card-row { transform: scale(1.0); }
 
         .team-goal-card {
-            width: 170px; height: 170px; border-radius: 28px; display: flex; flex-direction: column;
+            width: 180px; height: 180px; border-radius: 30px; display: flex; flex-direction: column;
             align-items: center; justify-content: center; position: relative;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(255,255,255,0.2);
-            border: 3px solid rgba(255,255,255,0.3);
+            box-shadow: 0 14px 0 #000000, 0 25px 60px rgba(0,0,0,0.9);
+            border: 4px solid #000000;
         }
-        .team-goal-card.team-red-card { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
-        .team-goal-card.team-blue-card { background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%); }
+        .team-goal-card.team-red-card { background: linear-gradient(145deg, #ff2a5f 0%, #b91c1c 100%); }
+        .team-goal-card.team-blue-card { background: linear-gradient(145deg, #00d2ff 0%, #0284c7 100%); }
 
-        .team-goal-name { font-size: 1.15rem; font-weight: 900; letter-spacing: 2px; color: #ffffff; text-transform: uppercase; margin-bottom: 4px; }
+        .team-goal-name { font-family: var(--font-cartoon); font-size: 1.25rem; font-weight: 900; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; margin-bottom: 2px; }
         .team-goal-score-num {
-            font-size: 5.2rem; font-weight: 900; color: #ffffff; line-height: 1;
-            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 8px 25px rgba(0,0,0,0.9);
+            font-family: var(--font-cartoon); font-size: 5.6rem; font-weight: 900; color: #ffffff; line-height: 1;
+            text-shadow: -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 10px 30px rgba(0,0,0,0.9);
         }
+
+        .cartoon-cheer-trophy-box {
+            width: 220px; height: 220px; border-radius: 32px; border: 4px solid #000000;
+            overflow: hidden; box-shadow: 0 12px 0 #000000, 0 24px 50px rgba(0,0,0,0.9);
+            margin-bottom: 18px; animation: trophyBounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes trophyBounceIn {
+            0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+            70% { transform: scale(1.15) rotate(4deg); }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+        .cartoon-cheer-trophy-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 
         .tilted-vs-divider { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         .tilted-vs-line { width: 5px; height: 160px; background: linear-gradient(180deg, transparent, #ffffff, transparent); transform: rotate(18deg); box-shadow: 0 0 20px #ffffff; }
@@ -713,6 +776,15 @@
     </style>
 </head>
 <body>
+
+    <!-- LIGHTWEIGHT FLOATING CARTOON PARTICLES -->
+    <div class="cartoon-ambient-particles">
+        <div class="ambient-float-item float-item-1"><svg class="ambient-svg" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg></div>
+        <div class="ambient-float-item float-item-2"><svg class="ambient-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div>
+        <div class="ambient-float-item float-item-3"><svg class="ambient-svg" viewBox="0 0 24 24"><polygon points="13,2 3,14 11,14 9,22 21,10 13,10"/></svg></div>
+        <div class="ambient-float-item float-item-4"><svg class="ambient-svg" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg></div>
+        <div class="ambient-float-item float-item-5"><svg class="ambient-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div>
+    </div>
 
     <!-- WATERMARK DEV TEXT -->
     <div id="swaraj-dev-watermark" class="dev-watermark-text">
@@ -1036,13 +1108,6 @@
                         <div id="scanner-hidden-view" class="scanner-view-box">
                             <div class="scanner-poster-card" onclick="toggleScannerVisibility()" title="Click to Reveal QR Scanner">
                                 <img src="/assets/images/scannerhidden.jpg" alt="Lobby QR Locked" class="scanner-poster-img" onerror="this.src='/assets/images/scannerhidden.jfif'">
-                                <div class="scanner-secret-overlay">
-                                    <div class="secret-shield-badge">
-                                        <svg class="icon-svg-sm"><use href="#icon-eye"/></svg>
-                                        <span>QR CODE HIDDEN</span>
-                                    </div>
-                                    <div class="secret-hint-pill">CLICK EYE TO REVEAL</div>
-                                </div>
                             </div>
                         </div>
 
@@ -1071,7 +1136,7 @@
                     </div>
                     
                     <div class="scanner-wifi-tip">
-                        Connect phone to same Wi-Fi &bull; 1st connected player is Admin
+                        <span class="lan-port-warning">PORT :5000 (3 ZEROS)</span> &bull; Connect phone to same Wi-Fi &bull; 1st player is Admin
                     </div>
                 </div>
             </div>
@@ -1113,14 +1178,22 @@
         <!-- TV MATCH CONTAINER -->
         <div id="screen-game-2d" class="hidden">
             <div id="screenshot-hud">
+                <div class="hud-top-marquee-badge" id="hud-active-game-title">DEVGOAL! 3D</div>
                 <div class="score-board-row" id="hud-score-board-row">
-                    <span class="team-hud-tag red-tag">RED</span>
+                    <div class="team-hud-tag red-tag">
+                        <svg class="icon-svg-sm" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.5 7 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-3.5-8-7-13z"/></svg>
+                        <span>RED</span>
+                    </div>
                     <div class="score-digit-box" id="hud-score-red">0</div>
-                    <div class="score-vs-divider">VS</div>
+                    <div class="score-vs-star-pill">VS</div>
                     <div class="score-digit-box" id="hud-score-blue">0</div>
-                    <span class="team-hud-tag blue-tag">BLU</span>
+                    <div class="team-hud-tag blue-tag">
+                        <span>BLU</span>
+                        <svg class="icon-svg-sm" viewBox="0 0 24 24" fill="currentColor"><polygon points="13,2 3,14 11,14 9,22 21,10 13,10"/></svg>
+                    </div>
                 </div>
                 <div class="timer-banner-box">
+                    <svg class="icon-svg-sm" style="color: #000;"><use href="#icon-timer"/></svg>
                     <span class="timer-text-main" id="hud-timer-text">04:00</span>
                     <span class="timer-mode-badge" id="hud-timer-mode">1T</span>
                 </div>
@@ -1156,7 +1229,12 @@
             </div>
 
             <div id="pause-banner" class="hidden">PAUSED BY ADMIN</div>
-            <div id="cheer-overlay" class="hidden"><div class="cheer-banner" id="cheer-text">GOAL!!!</div></div>
+            <div id="cheer-overlay" class="hidden">
+                <div id="cheer-trophy-box" class="cartoon-cheer-trophy-box hidden">
+                    <img src="/assets/images/arcade_trophy.jpg" alt="Arcade Trophy" class="cartoon-cheer-trophy-img">
+                </div>
+                <div class="cheer-banner" id="cheer-text">GOAL!!!</div>
+            </div>
             <div id="offscreen-arrows-container"></div>
             
             <!-- GAME 1: DEVGOAL 3D CONTAINER -->
@@ -1263,14 +1341,17 @@
                 <div id="joystick-knob"></div>
             </div>
             <button id="btn-shoot" class="btn-ctrl-action">
+                <svg class="icon-svg-sm" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.5 7 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-3.5-8-7-13z"/></svg>
                 <span>SHOOT</span>
                 <span class="pc-key-hint">Space</span>
             </button>
             <button id="btn-pass" class="btn-ctrl-action">
+                <svg class="icon-svg-sm" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
                 <span>PASS</span>
                 <span class="pc-key-hint">Ctrl</span>
             </button>
             <button id="btn-dash" class="btn-ctrl-action">
+                <svg class="icon-svg-sm" viewBox="0 0 24 24" fill="currentColor"><polygon points="13,2 3,14 11,14 9,22 21,10 13,10"/></svg>
                 <span id="dash-btn-label">DASH</span>
                 <span class="pc-key-hint">Shift</span>
                 <div class="dash-cooldown-overlay" id="dash-cooldown-overlay"></div>
@@ -2164,6 +2245,7 @@
 
         function runKickoffCountdown(cdSecs = 5) {
             isKickoffCounting = true;
+            document.getElementById('cheer-trophy-box')?.classList.add('hidden');
             const overlay = document.getElementById('cheer-overlay');
             const textEl = document.getElementById('cheer-text');
             textEl.innerText = cdSecs;
@@ -2234,6 +2316,7 @@
                             <div class="game-play-btn-box ${focusOnPlayBtn ? 'focused-play-btn' : ''}" onclick="adminConfirmGame()">
                                 <svg class="icon-svg"><use href="#icon-play"/></svg>
                                 <span>PLAY GAME</span>
+                                <span class="pc-key-hint">Enter</span>
                             </div>
                         ` : ''}
                     </div>
@@ -2296,11 +2379,13 @@
 
             const overlay = document.getElementById('cheer-overlay');
             document.getElementById('cheer-text').innerText = winnerText;
+            document.getElementById('cheer-trophy-box')?.classList.remove('hidden');
             overlay.classList.remove('hidden');
             soundEngine.playGoal();
 
             setTimeout(() => {
                 overlay.classList.add('hidden');
+                document.getElementById('cheer-trophy-box')?.classList.add('hidden');
                 socket.emit('match_over_leave');
             }, 3500);
         }
@@ -2772,6 +2857,8 @@
 
         function initSpacessMatch(serverPlayers) {
             cleanupActiveMatch();
+            const titleEl = document.getElementById('hud-active-game-title');
+            if (titleEl) titleEl.innerText = "SPACESS COSMIC";
 
             const container = document.getElementById('spacess-canvas-container');
             container.innerHTML = '<canvas id="spacess-game-canvas"></canvas>';
@@ -3247,6 +3334,8 @@
 
         function initPingPongMatch(serverPlayers = []) {
             cleanupActiveMatch();
+            const titleEl = document.getElementById('hud-active-game-title');
+            if (titleEl) titleEl.innerText = "PING PONG PRO";
 
             const container = document.getElementById('ping-pong-canvas-container');
             container.innerHTML = '<canvas id="ping-pong-game-canvas"></canvas>';
@@ -3913,6 +4002,8 @@
 
         function initGolazo3DMegaMatch(serverPlayers) {
             cleanupActiveMatch();
+            const titleEl = document.getElementById('hud-active-game-title');
+            if (titleEl) titleEl.innerText = "DEVGOAL! 3D";
 
             const container = document.getElementById('three-canvas-container');
             container.innerHTML = '';
