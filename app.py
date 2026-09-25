@@ -44,6 +44,17 @@ GAMES_CATALOG = [
         'thumbnail': 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=600&auto=format&fit=crop',
         'gameplayGif': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop',
         'description': 'Deep black VOID space table tennis featuring Alien Spaceship paddles, 6-player multi-column arenas, big solo spaceship auto-balance for 3 players, and plasma ball rally physics.'
+    },
+    {
+        'id': 'ping_pong',
+        'title': 'Ping Pong',
+        'category': 'Sports Arcade',
+        'subtitle': 'Classic Table Tennis (1-4 Players)',
+        'playersText': '1-4 Players (Singles / Doubles)',
+        'badge': 'MOUSE & CONTROLLER',
+        'thumbnail': 'https://images.unsplash.com/photo-1534158914592-062992fbe900?w=600&auto=format&fit=crop',
+        'gameplayGif': 'https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=1200&auto=format&fit=crop',
+        'description': 'Classic Table Tennis inspired by 1 2 3 4 Player Games! Direct PC mouse paddle control, spin deflection, authentic wooden table acoustics, 3D ball loft, and smash bursts.'
     }
 ]
 

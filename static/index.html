@@ -416,8 +416,8 @@
             position: absolute !important; inset: 0 !important; width: 100vw !important; height: 100vh !important;
             background: #000000 !important; overflow: hidden !important;
         }
-        #three-canvas-container, #spacess-canvas-container { width: 100vw !important; height: 100vh !important; display: block !important; position: absolute; inset: 0; }
-        #spacess-game-canvas { width: 100vw !important; height: 100vh !important; display: block !important; background: #000000; }
+        #three-canvas-container, #spacess-canvas-container, #ping-pong-canvas-container { width: 100vw !important; height: 100vh !important; display: block !important; position: absolute; inset: 0; }
+        #spacess-game-canvas, #ping-pong-game-canvas { width: 100vw !important; height: 100vh !important; display: block !important; }
     </style>
 </head>
 <body>
@@ -754,6 +754,8 @@
             <div id="three-canvas-container"></div>
             <!-- GAME 2: SPACESS 2D COSMIC TABLE TENNIS CONTAINER -->
             <div id="spacess-canvas-container" class="hidden"></div>
+            <!-- GAME 3: PING PONG 2.5D TABLE TENNIS CONTAINER -->
+            <div id="ping-pong-canvas-container" class="hidden"></div>
         </div>
     </div>
 
@@ -961,6 +963,16 @@
                 spacessCanvas.width = w;
                 spacessCanvas.height = h;
             }
+            if (pingPongCanvas) {
+                const container = document.getElementById('ping-pong-canvas-container');
+                const w = container && container.clientWidth ? container.clientWidth : window.innerWidth;
+                const h = container && container.clientHeight ? container.clientHeight : window.innerHeight;
+                pingPongCanvas.width = w;
+                pingPongCanvas.height = h;
+                if (typeof updatePingPongTableDimensions === 'function') {
+                    updatePingPongTableDimensions();
+                }
+            }
         });
 
         // FORCE FULLSCREEN AND LANDSCAPE LOCK FUNCTION
@@ -1035,6 +1047,41 @@
                     osc.connect(gain); gain.connect(this.ctx.destination);
                     osc.start(now + (i * 0.1)); osc.stop(now + (i * 0.1) + 0.45);
                 });
+            }
+            playPaddleHit(speed = 1.0) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                const f = 450 * Math.min(1.8, Math.max(0.7, speed));
+                osc.frequency.setValueAtTime(f, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.07);
+                gain.gain.setValueAtTime(0.65, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.07);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.07);
+            }
+            playTableBounce(speed = 1.0) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'sine';
+                const f = 750 * Math.min(1.5, Math.max(0.8, speed));
+                osc.frequency.setValueAtTime(f, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(240, this.ctx.currentTime + 0.04);
+                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.04);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.04);
+            }
+            playNetClip() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.06);
+                gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.06);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.06);
             }
         }
         const soundEngine = new SoundEngine();
@@ -1319,6 +1366,7 @@
         function cleanupActiveMatch() {
             match3DActive = false;
             spacessActive = false;
+            pingPongActive = false;
 
             if (devGoalAnimId) {
                 cancelAnimationFrame(devGoalAnimId);
@@ -1328,6 +1376,10 @@
                 cancelAnimationFrame(spacessAnimId);
                 spacessAnimId = null;
             }
+            if (pingPongAnimId) {
+                cancelAnimationFrame(pingPongAnimId);
+                pingPongAnimId = null;
+            }
             if (goalCelebrationTimeout) {
                 clearTimeout(goalCelebrationTimeout);
                 goalCelebrationTimeout = null;
@@ -1335,6 +1387,10 @@
             if (spacessServeTimeout) {
                 clearTimeout(spacessServeTimeout);
                 spacessServeTimeout = null;
+            }
+            if (pingPongServeTimeout) {
+                clearTimeout(pingPongServeTimeout);
+                pingPongServeTimeout = null;
             }
 
             isGoalCelebrating = false;
@@ -1447,12 +1503,21 @@
 
                     if (currGameId === 'spacess') {
                         document.getElementById('three-canvas-container').classList.add('hidden');
+                        document.getElementById('ping-pong-canvas-container').classList.add('hidden');
                         document.getElementById('spacess-canvas-container').classList.remove('hidden');
                         document.getElementById('tv-screen-settings-trigger-btn').classList.add('hidden');
                         document.getElementById('offscreen-arrows-container').classList.add('hidden');
                         initSpacessMatch(players);
+                    } else if (currGameId === 'ping_pong') {
+                        document.getElementById('three-canvas-container').classList.add('hidden');
+                        document.getElementById('spacess-canvas-container').classList.add('hidden');
+                        document.getElementById('ping-pong-canvas-container').classList.remove('hidden');
+                        document.getElementById('tv-screen-settings-trigger-btn').classList.add('hidden');
+                        document.getElementById('offscreen-arrows-container').classList.add('hidden');
+                        initPingPongMatch(players);
                     } else {
                         document.getElementById('spacess-canvas-container').classList.add('hidden');
+                        document.getElementById('ping-pong-canvas-container').classList.add('hidden');
                         document.getElementById('three-canvas-container').classList.remove('hidden');
                         document.getElementById('tv-screen-settings-trigger-btn').classList.remove('hidden');
                         document.getElementById('offscreen-arrows-container').classList.remove('hidden');
@@ -1495,11 +1560,11 @@
                     document.getElementById('controller-game').classList.remove('hidden');
 
                     const currGameId = selectedGame || (gamesCatalog[selectedGameIndex]?.id) || 'dev_goal';
-                    if (currGameId === 'spacess') {
+                    if (currGameId === 'spacess' || currGameId === 'ping_pong') {
                         document.getElementById('btn-shoot')?.classList.add('hidden');
                         document.getElementById('btn-pass')?.classList.add('hidden');
                         const label = document.getElementById('dash-btn-label');
-                        if (label) label.innerText = 'BOOST';
+                        if (label) label.innerText = (currGameId === 'ping_pong') ? 'SMASH' : 'BOOST';
                     } else {
                         document.getElementById('btn-shoot')?.classList.remove('hidden');
                         document.getElementById('btn-pass')?.classList.remove('hidden');
@@ -1694,6 +1759,8 @@
                 const currGameId = gamesCatalog[selectedGameIndex]?.id || 'dev_goal';
                 if (currGameId === 'spacess') {
                     serveSpacessBall('random');
+                } else if (currGameId === 'ping_pong') {
+                    servePingPongBall('random');
                 } else {
                     resetBallAndPlayersPosition();
                 }
@@ -2473,6 +2540,613 @@
         }
 
         // =========================================================================
+        // GAME 3: PING PONG (TABLE TENNIS) 2.5D ARCADE ENGINE (1-4 PLAYERS)
+        // Inspired by JindoBlu's 1 2 3 4 Player Games with Direct PC Mouse Paddle Control!
+        // =========================================================================
+        let pingPongActive = false;
+        let pingPongAnimId = null;
+        let pingPongServeTimeout = null;
+        let pingPongCanvas = null;
+        let pingPongCtx = null;
+        let pingPongPlayers = {};
+        let pingPongTable = { x: 0, y: 0, width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0, centerX: 0, centerY: 0 };
+        let pingPongBall = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, radius: 9, lastHitterTeam: null, rallyCount: 0 };
+        let pingPongMouse = { active: false, x: 0, y: 0, isSmash: false };
+        let pingPongParticles = [];
+        let pingPongMouseBound = false;
+
+        function updatePingPongTableDimensions() {
+            if (!pingPongCanvas) return;
+            const w = pingPongCanvas.width;
+            const h = pingPongCanvas.height;
+
+            const tWidth = Math.min(w * 0.82, Math.max(680, w - 100));
+            const tHeight = Math.min(h * 0.74, Math.max(380, h - 90));
+            const tX = (w - tWidth) / 2;
+            const tY = (h - tHeight) / 2;
+
+            pingPongTable = {
+                x: tX, y: tY,
+                width: tWidth, height: tHeight,
+                left: tX, right: tX + tWidth,
+                top: tY, bottom: tY + tHeight,
+                centerX: w / 2, centerY: h / 2
+            };
+        }
+
+        function bindPingPongMouseListeners() {
+            if (pingPongMouseBound) return;
+            pingPongMouseBound = true;
+
+            const canvasContainer = document.getElementById('screen-game-2d');
+            if (!canvasContainer) return;
+
+            canvasContainer.addEventListener('mousemove', (e) => {
+                if (!pingPongActive || currentRoomState !== 'playing' || !pingPongCanvas) return;
+                const rect = pingPongCanvas.getBoundingClientRect();
+                pingPongMouse.active = true;
+                pingPongMouse.x = e.clientX - rect.left;
+                pingPongMouse.y = e.clientY - rect.top;
+            });
+
+            canvasContainer.addEventListener('mousedown', (e) => {
+                if (!pingPongActive || currentRoomState !== 'playing') return;
+                pingPongMouse.isSmash = true;
+                setTimeout(() => { pingPongMouse.isSmash = false; }, 220);
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (!pingPongActive || currentRoomState !== 'playing') return;
+                if (e.key === 'Shift' || e.code === 'Space') {
+                    pingPongMouse.isSmash = true;
+                    setTimeout(() => { pingPongMouse.isSmash = false; }, 220);
+                }
+            });
+        }
+
+        function initPingPongMatch(serverPlayers) {
+            cleanupActiveMatch();
+
+            const container = document.getElementById('ping-pong-canvas-container');
+            container.innerHTML = '<canvas id="ping-pong-game-canvas"></canvas>';
+
+            pingPongCanvas = document.getElementById('ping-pong-game-canvas');
+            pingPongCtx = pingPongCanvas.getContext('2d');
+
+            const w = container.clientWidth || window.innerWidth;
+            const h = container.clientHeight || window.innerHeight;
+            pingPongCanvas.width = w;
+            pingPongCanvas.height = h;
+
+            updatePingPongTableDimensions();
+            bindPingPongMouseListeners();
+
+            const redTeam = serverPlayers.filter(p => p.team === 'left');
+            const blueTeam = serverPlayers.filter(p => p.team === 'right');
+
+            pingPongPlayers = {};
+            pingPongParticles = [];
+
+            // Identify local PC player for direct mouse steering
+            let assignedMouseId = null;
+            if (redTeam.length > 0) {
+                assignedMouseId = redTeam[0].id;
+            }
+
+            redTeam.forEach((p, idx) => {
+                const count = redTeam.length;
+                const spawnX = pingPongTable.left + pingPongTable.width * (count > 1 ? (0.12 + idx * 0.1) : 0.18);
+                const spawnY = pingPongTable.centerY + ((idx - (count - 1) / 2) * (pingPongTable.height * 0.35));
+
+                pingPongPlayers[p.id] = {
+                    id: p.id, name: p.name, team: 'left',
+                    colorHex: '#ef4444',
+                    borderHex: '#991b1b',
+                    x: spawnX, y: spawnY,
+                    targetX: spawnX, targetY: spawnY,
+                    radius: 30,
+                    facingDir: 'RIGHT',
+                    moveX: 0, moveY: 0, dash: false,
+                    isMouseControlled: (p.id === assignedMouseId),
+                    tiltAngle: 0
+                };
+            });
+
+            blueTeam.forEach((p, idx) => {
+                const count = blueTeam.length;
+                const spawnX = pingPongTable.right - pingPongTable.width * (count > 1 ? (0.12 + idx * 0.1) : 0.18);
+                const spawnY = pingPongTable.centerY + ((idx - (count - 1) / 2) * (pingPongTable.height * 0.35));
+
+                pingPongPlayers[p.id] = {
+                    id: p.id, name: p.name, team: 'right',
+                    colorHex: '#06b6d4',
+                    borderHex: '#0e7490',
+                    x: spawnX, y: spawnY,
+                    targetX: spawnX, targetY: spawnY,
+                    radius: 30,
+                    facingDir: 'LEFT',
+                    moveX: 0, moveY: 0, dash: false,
+                    isMouseControlled: false,
+                    tiltAngle: 0
+                };
+            });
+
+            pingPongActive = true;
+            pingPongAnimId = requestAnimationFrame(renderPingPongLoop);
+
+            servePingPongBall('random');
+        }
+
+        function servePingPongBall(serveDirection = 'random') {
+            if (!pingPongCanvas) return;
+
+            updatePingPongTableDimensions();
+            pingPongBall.x = pingPongTable.centerX;
+            pingPongBall.y = pingPongTable.centerY;
+            pingPongBall.z = 32;
+            pingPongBall.vx = 0;
+            pingPongBall.vy = 0;
+            pingPongBall.vz = 0;
+            pingPongBall.rallyCount = 0;
+            pingPongBall.lastHitterTeam = null;
+
+            runKickoffCountdown(3);
+
+            if (pingPongServeTimeout) clearTimeout(pingPongServeTimeout);
+            pingPongServeTimeout = setTimeout(() => {
+                if (!pingPongActive || currentRoomState !== 'playing') return;
+
+                let dirX = 1;
+                if (serveDirection === 'left') dirX = -1;
+                else if (serveDirection === 'right') dirX = 1;
+                else dirX = Math.random() < 0.5 ? -1 : 1;
+
+                const baseSpeed = 8.5;
+                const launchAngle = (Math.random() * 0.6 - 0.3); // ~ -17° to +17°
+                pingPongBall.vx = Math.cos(launchAngle) * baseSpeed * dirX;
+                pingPongBall.vy = Math.sin(launchAngle) * baseSpeed;
+                pingPongBall.vz = 3.5;
+                soundEngine.playWhistle();
+            }, 3000);
+        }
+
+        function triggerPingPongPointSequence(scoringTeam) {
+            if (isGoalCelebrating) return;
+            isGoalCelebrating = true;
+
+            pingPongBall.x = pingPongTable.centerX;
+            pingPongBall.y = pingPongTable.centerY;
+            pingPongBall.z = 25;
+            pingPongBall.vx = 0;
+            pingPongBall.vy = 0;
+            pingPongBall.vz = 0;
+
+            const targetTeamKey = scoringTeam === 'BLUE' ? 'blue' : 'red';
+            socket.emit('goal_scored', { team: targetTeamKey });
+
+            soundEngine.playWhistle();
+            soundEngine.playGoal();
+
+            const goalOverlay = document.getElementById('goal-celebration-overlay');
+            const plusRed = document.getElementById('plus-one-red-banner');
+            const plusBlue = document.getElementById('plus-one-blue-banner');
+
+            plusRed.innerText = '+1 POINT!';
+            plusBlue.innerText = '+1 POINT!';
+            plusRed.classList.add('hidden');
+            plusBlue.classList.add('hidden');
+
+            if (scoringTeam === 'RED') plusRed.classList.remove('hidden');
+            else plusBlue.classList.remove('hidden');
+
+            goalOverlay.classList.add('show-overlay');
+
+            if (goalCelebrationTimeout) clearTimeout(goalCelebrationTimeout);
+            goalCelebrationTimeout = setTimeout(() => {
+                goalOverlay.classList.remove('show-overlay');
+                isGoalCelebrating = false;
+                servePingPongBall(scoringTeam === 'RED' ? 'right' : 'left');
+            }, 1800);
+        }
+
+        function spawnPingPongSpark(x, y, colorHex = '#ffffff') {
+            for (let i = 0; i < 8; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const spd = 2 + Math.random() * 5;
+                pingPongParticles.push({
+                    x, y,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd,
+                    radius: 2 + Math.random() * 3,
+                    alpha: 1.0,
+                    color: colorHex
+                });
+            }
+        }
+
+        function drawPingPongRacket(ctx, p) {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+
+            // Dynamic rotation based on movement and team orientation
+            let baseAngle = (p.facingDir === 'RIGHT' ? 0 : Math.PI);
+            ctx.rotate(baseAngle + p.tiltAngle);
+
+            // 1. Racket Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+            ctx.beginPath();
+            ctx.ellipse(4, 12, p.radius, p.radius * 0.9, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Wooden Handle
+            const handleGrad = ctx.createLinearGradient(-48, -7, -20, 7);
+            handleGrad.addColorStop(0, '#78350f');
+            handleGrad.addColorStop(0.5, '#d97706');
+            handleGrad.addColorStop(1, '#92400e');
+            ctx.fillStyle = handleGrad;
+            ctx.beginPath();
+            ctx.roundRect(-46, -6, 26, 12, [4, 2, 2, 4]);
+            ctx.fill();
+            ctx.strokeStyle = '#451a03';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Grip stripe
+            ctx.strokeStyle = '#fef3c7';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-34, -6);
+            ctx.lineTo(-34, 6);
+            ctx.stroke();
+
+            // 3. Wooden Blade Rim Underlay
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.radius + 2, p.radius * 0.94 + 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4. Rubber Blade Surface (Red or Blue Team)
+            const rubberGrad = ctx.createRadialGradient(-6, -6, 4, 0, 0, p.radius);
+            if (p.team === 'left') {
+                rubberGrad.addColorStop(0, '#f87171');
+                rubberGrad.addColorStop(0.7, '#ef4444');
+                rubberGrad.addColorStop(1, '#b91c1c');
+            } else {
+                rubberGrad.addColorStop(0, '#38bdf8');
+                rubberGrad.addColorStop(0.7, '#06b6d4');
+                rubberGrad.addColorStop(1, '#0284c7');
+            }
+            ctx.fillStyle = rubberGrad;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.radius, p.radius * 0.94, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = p.borderHex;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Smash / Boost Glow Aura
+            if (p.dash) {
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = '#f59e0b';
+                ctx.shadowBlur = 15;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.restore();
+
+            // 5. Clean Name Badge Above Racket
+            ctx.save();
+            ctx.font = '900 12px Montserrat, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#000000';
+            ctx.shadowBlur = 6;
+            ctx.fillText(p.name, p.x, p.y - p.radius - 14);
+            if (p.isMouseControlled) {
+                ctx.font = '800 10px Montserrat, sans-serif';
+                ctx.fillStyle = '#fde047';
+                ctx.fillText('MOUSE PADDLE', p.x, p.y - p.radius - 28);
+            }
+            ctx.restore();
+        }
+
+        function renderPingPongLoop() {
+            if (!pingPongActive) return;
+
+            const w = pingPongCanvas.width;
+            const h = pingPongCanvas.height;
+            const t = pingPongTable;
+
+            // 1. Stadium Ambient Background
+            const bgGrad = pingPongCtx.createRadialGradient(w / 2, h / 2, 100, w / 2, h / 2, Math.max(w, h));
+            bgGrad.addColorStop(0, '#111827');
+            bgGrad.addColorStop(0.6, '#090d16');
+            bgGrad.addColorStop(1, '#030712');
+            pingPongCtx.fillStyle = bgGrad;
+            pingPongCtx.fillRect(0, 0, w, h);
+
+            // 2. Table Drop Shadow
+            pingPongCtx.save();
+            pingPongCtx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+            pingPongCtx.shadowBlur = 40;
+            pingPongCtx.shadowOffsetY = 24;
+            pingPongCtx.fillStyle = '#000000';
+            pingPongCtx.beginPath();
+            pingPongCtx.roundRect(t.x, t.y, t.width, t.height, 24);
+            pingPongCtx.fill();
+            pingPongCtx.restore();
+
+            // 3. Wood Table Frame (Rich Walnut / Mahogany Bevel)
+            const woodGrad = pingPongCtx.createLinearGradient(t.x, t.y, t.x, t.bottom);
+            woodGrad.addColorStop(0, '#78350f');
+            woodGrad.addColorStop(0.3, '#451a03');
+            woodGrad.addColorStop(0.7, '#270e02');
+            woodGrad.addColorStop(1, '#451a03');
+            pingPongCtx.fillStyle = woodGrad;
+            pingPongCtx.beginPath();
+            pingPongCtx.roundRect(t.x - 14, t.y - 14, t.width + 28, t.height + 28, 22);
+            pingPongCtx.fill();
+
+            // Frame Highlight Stroke
+            pingPongCtx.strokeStyle = '#92400e';
+            pingPongCtx.lineWidth = 2.5;
+            pingPongCtx.stroke();
+
+            // 4. Tournament Blue Table Tennis Surface
+            const tableFeltGrad = pingPongCtx.createLinearGradient(t.x, t.y, t.right, t.bottom);
+            tableFeltGrad.addColorStop(0, '#1e40af');
+            tableFeltGrad.addColorStop(0.5, '#1d4ed8');
+            tableFeltGrad.addColorStop(1, '#172554');
+            pingPongCtx.fillStyle = tableFeltGrad;
+            pingPongCtx.beginPath();
+            pingPongCtx.roundRect(t.x, t.y, t.width, t.height, 12);
+            pingPongCtx.fill();
+
+            // White Table Outer Boundary Lines
+            pingPongCtx.strokeStyle = '#ffffff';
+            pingPongCtx.lineWidth = 4;
+            pingPongCtx.beginPath();
+            pingPongCtx.roundRect(t.x + 6, t.y + 6, t.width - 12, t.height - 12, 8);
+            pingPongCtx.stroke();
+
+            // Center Horizontal White Line (Doubles Line)
+            pingPongCtx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            pingPongCtx.lineWidth = 2;
+            pingPongCtx.beginPath();
+            pingPongCtx.moveTo(t.left + 6, t.centerY);
+            pingPongCtx.lineTo(t.right - 6, t.centerY);
+            pingPongCtx.stroke();
+
+            // 5. Table Tennis Net Across Center
+            // Net Shadow
+            pingPongCtx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+            pingPongCtx.fillRect(t.centerX + 3, t.top - 12, 10, t.height + 24);
+
+            // Net Mesh
+            pingPongCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            pingPongCtx.lineWidth = 1;
+            for (let ny = t.top - 14; ny <= t.bottom + 14; ny += 6) {
+                pingPongCtx.beginPath();
+                pingPongCtx.moveTo(t.centerX - 3, ny);
+                pingPongCtx.lineTo(t.centerX + 3, ny);
+                pingPongCtx.stroke();
+            }
+
+            // Top White Tape of Net
+            pingPongCtx.strokeStyle = '#ffffff';
+            pingPongCtx.lineWidth = 4.5;
+            pingPongCtx.beginPath();
+            pingPongCtx.moveTo(t.centerX, t.top - 16);
+            pingPongCtx.lineTo(t.centerX, t.bottom + 16);
+            pingPongCtx.stroke();
+
+            // Metal Net Posts
+            pingPongCtx.fillStyle = '#18181b';
+            pingPongCtx.strokeStyle = '#a1a1aa';
+            pingPongCtx.lineWidth = 1.5;
+            // Top Post
+            pingPongCtx.fillRect(t.centerX - 5, t.top - 20, 10, 12);
+            pingPongCtx.strokeRect(t.centerX - 5, t.top - 20, 10, 12);
+            // Bottom Post
+            pingPongCtx.fillRect(t.centerX - 5, t.bottom + 8, 10, 12);
+            pingPongCtx.strokeRect(t.centerX - 5, t.bottom + 8, 10, 12);
+
+            // 6. Update Players & Steer Paddles
+            if (!isPausedByAdmin) {
+                Object.values(pingPongPlayers).forEach(p => {
+                    // Direct PC Mouse Control for assigned player
+                    if (p.isMouseControlled && pingPongMouse.active) {
+                        if (p.team === 'left') {
+                            p.targetX = Math.max(t.left + 24, Math.min(t.centerX - 36, pingPongMouse.x));
+                            p.targetY = Math.max(t.top + 24, Math.min(t.bottom - 24, pingPongMouse.y));
+                        } else {
+                            p.targetX = Math.max(t.centerX + 36, Math.min(t.right - 24, pingPongMouse.x));
+                            p.targetY = Math.max(t.top + 24, Math.min(t.bottom - 24, pingPongMouse.y));
+                        }
+                        const prevY = p.y;
+                        p.x += (p.targetX - p.x) * 0.85;
+                        p.y += (p.targetY - p.y) * 0.85;
+                        p.tiltAngle = Math.max(-0.35, Math.min(0.35, (p.y - prevY) * 0.04));
+                    } else {
+                        // Optional Local Keyboard Support on PC screen (Arrow Keys for Player 2 / Blue Team)
+                        if (isScreenMode && p.team === 'right') {
+                            let kx = 0, ky = 0;
+                            if (keysPressed['arrowup']) ky -= 1;
+                            if (keysPressed['arrowdown']) ky += 1;
+                            if (keysPressed['arrowleft']) kx -= 1;
+                            if (keysPressed['arrowright']) kx += 1;
+                            if (kx !== 0 || ky !== 0) {
+                                p.moveX = kx;
+                                p.moveY = ky;
+                                p.dash = !!(keysPressed['enter'] || keysPressed['control']);
+                            }
+                        }
+
+                        // Gamepad / Joystick / Keyboard Navigation
+                        const speed = p.dash ? 13.5 : 8.0;
+                        p.x += p.moveX * speed;
+                        p.y += p.moveY * speed;
+                        p.tiltAngle = p.moveY * 0.28;
+
+                        // Clamping to team half
+                        p.y = Math.max(t.top + 24, Math.min(t.bottom - 24, p.y));
+                        if (p.team === 'left') {
+                            p.x = Math.max(t.left + 24, Math.min(t.centerX - 36, p.x));
+                        } else {
+                            p.x = Math.max(t.centerX + 36, Math.min(t.right - 24, p.x));
+                        }
+                    }
+
+                    drawPingPongRacket(pingPongCtx, p);
+                });
+            }
+
+            // 7. Ball Physics & 3D Loft Mechanics
+            if (!isPausedByAdmin && !isKickoffCounting && !isGoalCelebrating) {
+                pingPongBall.x += pingPongBall.vx;
+                pingPongBall.y += pingPongBall.vy;
+                pingPongBall.z += pingPongBall.vz;
+                pingPongBall.vz -= 0.26; // Gravity
+
+                // Table Surface Bounce Detection (Plane z = 0)
+                const isOverTable = (
+                    pingPongBall.x >= t.left &&
+                    pingPongBall.x <= t.right &&
+                    pingPongBall.y >= t.top &&
+                    pingPongBall.y <= t.bottom
+                );
+
+                if (pingPongBall.z <= 0) {
+                    if (isOverTable) {
+                        pingPongBall.z = 0;
+                        const impactSpeed = Math.abs(pingPongBall.vz);
+                        pingPongBall.vz = Math.max(2.2, impactSpeed * 0.82 + 1.2);
+                        soundEngine.playTableBounce(Math.abs(pingPongBall.vx) / 8.0);
+                        spawnPingPongSpark(pingPongBall.x, pingPongBall.y, '#93c5fd');
+                    } else {
+                        // Off Table Out of Bounds -> Point for Opponent!
+                        if (pingPongBall.x < t.left - 20) {
+                            triggerPingPongPointSequence('BLUE');
+                        } else if (pingPongBall.x > t.right + 20) {
+                            triggerPingPongPointSequence('RED');
+                        } else if (pingPongBall.y < t.top - 25 || pingPongBall.y > t.bottom + 25) {
+                            const awardingTeam = (pingPongBall.lastHitterTeam === 'left') ? 'BLUE' : 'RED';
+                            triggerPingPongPointSequence(awardingTeam);
+                        }
+                    }
+                }
+
+                // Table Net Collision Check (x = centerX, height = 22)
+                const distToNet = Math.abs(pingPongBall.x - t.centerX);
+                if (distToNet < 6 && pingPongBall.z < 20) {
+                    soundEngine.playNetClip();
+                    pingPongBall.vx = -pingPongBall.vx * 0.38;
+                    pingPongBall.vz = Math.max(1.0, pingPongBall.vz * 0.5);
+                    spawnPingPongSpark(t.centerX, pingPongBall.y, '#ffffff');
+                }
+
+                // Paddle Collision Check
+                Object.values(pingPongPlayers).forEach(p => {
+                    const dx = pingPongBall.x - p.x;
+                    const dy = pingPongBall.y - p.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist < (p.radius + pingPongBall.radius + 4)) {
+                        // Prevent multi-triggering in same direction
+                        if ((p.team === 'left' && pingPongBall.vx <= 0) || (p.team === 'right' && pingPongBall.vx >= 0)) {
+                            const hitOffset = Math.max(-1.0, Math.min(1.0, dy / p.radius));
+                            const deflectionAngle = hitOffset * 0.72; // ~41° max angle
+
+                            let hitSpeed = 9.8 + Math.min(8.0, pingPongBall.rallyCount * 0.35);
+                            if (p.dash) {
+                                hitSpeed *= 1.48; // Smash boost!
+                                spawnPingPongSpark(p.x, p.y, '#f59e0b');
+                            }
+
+                            const dirX = (p.team === 'left' ? 1 : -1);
+                            pingPongBall.vx = Math.cos(deflectionAngle) * hitSpeed * dirX;
+                            pingPongBall.vy = Math.sin(deflectionAngle) * hitSpeed + (p.moveY * 1.5);
+                            pingPongBall.vz = 3.8 + (p.dash ? 2.0 : 0);
+
+                            pingPongBall.rallyCount++;
+                            pingPongBall.lastHitterTeam = p.team;
+
+                            soundEngine.playPaddleHit(hitSpeed / 10.0);
+                            spawnPingPongSpark(pingPongBall.x, pingPongBall.y, p.colorHex);
+                        }
+                    }
+                });
+
+                // End-line baseline misses
+                if (pingPongBall.x < t.left - 45) {
+                    triggerPingPongPointSequence('BLUE');
+                } else if (pingPongBall.x > t.right + 45) {
+                    triggerPingPongPointSequence('RED');
+                }
+            }
+
+            // 8. Render Particles
+            for (let i = pingPongParticles.length - 1; i >= 0; i--) {
+                const pt = pingPongParticles[i];
+                pt.x += pt.vx; pt.y += pt.vy;
+                pt.alpha -= 0.04;
+                if (pt.alpha <= 0) {
+                    pingPongParticles.splice(i, 1);
+                } else {
+                    pingPongCtx.fillStyle = pt.color;
+                    pingPongCtx.globalAlpha = pt.alpha;
+                    pingPongCtx.beginPath();
+                    pingPongCtx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+                    pingPongCtx.fill();
+                    pingPongCtx.globalAlpha = 1.0;
+                }
+            }
+
+            // 9. Ball 3D Parallax Shadow & Celluloid Sphere
+            if (pingPongBall.vx !== 0 || pingPongBall.vy !== 0 || isKickoffCounting) {
+                const shadowScale = Math.max(3, pingPongBall.radius * (1 - pingPongBall.z * 0.008));
+                const shadowAlpha = Math.max(0.08, 0.45 / (1 + pingPongBall.z * 0.025));
+
+                // Drop Shadow on Table
+                pingPongCtx.fillStyle = `rgba(0, 0, 0, ${shadowAlpha})`;
+                pingPongCtx.beginPath();
+                pingPongCtx.ellipse(pingPongBall.x, pingPongBall.y + 8 + pingPongBall.z * 0.2, shadowScale * 1.2, shadowScale * 0.7, 0, 0, Math.PI * 2);
+                pingPongCtx.fill();
+
+                // Ball Sphere (elevated by z height)
+                const renderBallY = pingPongBall.y - pingPongBall.z;
+                const ballGrad = pingPongCtx.createRadialGradient(
+                    pingPongBall.x - 3, renderBallY - 3, 2,
+                    pingPongBall.x, renderBallY, pingPongBall.radius
+                );
+                ballGrad.addColorStop(0, '#ffffff');
+                ballGrad.addColorStop(0.6, '#f1f5f9');
+                ballGrad.addColorStop(1, '#94a3b8');
+
+                pingPongCtx.fillStyle = ballGrad;
+                pingPongCtx.beginPath();
+                pingPongCtx.arc(pingPongBall.x, renderBallY, pingPongBall.radius, 0, Math.PI * 2);
+                pingPongCtx.fill();
+
+                pingPongCtx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+                pingPongCtx.lineWidth = 1;
+                pingPongCtx.stroke();
+            }
+
+            // 10. PC Controls Hint Pill (at bottom center)
+            pingPongCtx.save();
+            pingPongCtx.font = '700 11px Montserrat, sans-serif';
+            pingPongCtx.textAlign = 'center';
+            pingPongCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            pingPongCtx.fillText('🖱️ MOVE MOUSE TO CONTROL PADDLE  |  CLICK OR [SPACE] TO SMASH', w / 2, h - 16);
+            pingPongCtx.restore();
+
+            pingPongAnimId = requestAnimationFrame(renderPingPongLoop);
+        }
+
+        // =========================================================================
         // GAME 1: DEVGOAL 3D ARCADE ENGINE
         // =========================================================================
         let scene, camera3D, renderer3D, match3DActive = false;
@@ -2495,6 +3169,11 @@
                 spacessPlayers[id].moveX = moveX;
                 spacessPlayers[id].moveY = moveY;
                 spacessPlayers[id].dash = dash;
+            }
+            if (pingPongPlayers[id]) {
+                pingPongPlayers[id].moveX = moveX;
+                pingPongPlayers[id].moveY = moveY;
+                pingPongPlayers[id].dash = dash;
             }
         });
 
