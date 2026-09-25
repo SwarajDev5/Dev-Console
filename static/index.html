@@ -583,11 +583,13 @@
             text-align: center; text-transform: uppercase;
         }
 
-        /* CRAZY CARTOON ARCADE SCOREBOARD HUD & TIMER */
+        /* CRAZY CARTOON ARCADE SCOREBOARD HUD & TIMER (SLIGHTLY COMPACT) */
         #screenshot-hud {
-            position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: 10px; left: 50%;
+            transform: translateX(-50%) scale(0.85);
+            transform-origin: top center;
             display: flex; flex-direction: column; align-items: center; z-index: 200; pointer-events: none;
-            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.8));
+            filter: drop-shadow(0 8px 18px rgba(0,0,0,0.85));
         }
         .hud-top-marquee-badge {
             background: linear-gradient(180deg, #ff2a85 0%, #e11d48 100%);
@@ -602,15 +604,45 @@
             border: 4px solid #000000; border-radius: 28px; padding: 8px 24px;
             box-shadow: 0 10px 0 #000000, 0 18px 40px rgba(0,0,0,0.85); gap: 14px; backdrop-filter: blur(12px);
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
         }
         .score-board-row.score-pop {
             animation: cartoonScoreBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         @keyframes cartoonScoreBounce {
             0% { transform: scale(1); }
-            35% { transform: scale(1.3) rotate(-3deg); }
-            70% { transform: scale(0.96) rotate(2deg); }
+            35% { transform: scale(1.18) rotate(-2.5deg); }
+            70% { transform: scale(0.97) rotate(1.5deg); }
             100% { transform: scale(1) rotate(0); }
+        }
+        @keyframes cartoonDigitBounce {
+            0% { transform: scale(1); }
+            30% { transform: scale(1.42) rotate(-6deg); filter: brightness(1.35); }
+            60% { transform: scale(0.92) rotate(3deg); }
+            100% { transform: scale(1) rotate(0); filter: brightness(1); }
+        }
+        .score-digit-bounce {
+            animation: cartoonDigitBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .floating-score-tag {
+            position: absolute;
+            top: -20px;
+            font-family: var(--font-cartoon);
+            font-size: 1.2rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 8px;
+            border: 2px solid #000000;
+            box-shadow: 0 4px 0 #000000;
+            pointer-events: none;
+            z-index: 50;
+            animation: floatScoreTagUp 0.85s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+        @keyframes floatScoreTagUp {
+            0% { opacity: 0; transform: translateY(8px) scale(0.6); }
+            20% { opacity: 1; transform: translateY(-4px) scale(1.2); }
+            70% { opacity: 1; transform: translateY(-18px) scale(1.0); }
+            100% { opacity: 0; transform: translateY(-34px) scale(0.8); }
         }
 
         .team-hud-tag {
@@ -840,11 +872,6 @@
                     <g transform="translate(62, 8)">
                         <text x="0" y="24" font-family="'Outfit', 'Fredoka', sans-serif" font-weight="900" font-size="22" letter-spacing="2" fill="#000000" dx="0" dy="2.5">DEV CONSOLE</text>
                         <text x="0" y="24" font-family="'Outfit', 'Fredoka', sans-serif" font-weight="900" font-size="22" letter-spacing="2" fill="url(#dcGoldGrad)">DEV CONSOLE</text>
-                        <g transform="translate(1, 30)">
-                            <rect x="0" y="0" width="124" height="15" rx="4" fill="#141828" stroke="#374151" stroke-width="1"/>
-                            <text x="6" y="11" font-family="'Outfit', sans-serif" font-weight="900" font-size="8.5" letter-spacing="1.6" fill="#e2e8f0">CLASSIC ARCADE</text>
-                            <circle cx="114" cy="7.5" r="3" fill="#22c55e"/>
-                        </g>
                     </g>
                 </svg>
             </div>
@@ -1066,11 +1093,6 @@
                     <g transform="translate(62, 8)">
                         <text x="0" y="24" font-family="'Outfit', 'Fredoka', sans-serif" font-weight="900" font-size="22" letter-spacing="2" fill="#000000" dx="0" dy="2.5">DEV CONSOLE</text>
                         <text x="0" y="24" font-family="'Outfit', 'Fredoka', sans-serif" font-weight="900" font-size="22" letter-spacing="2" fill="url(#dcGoldGrad)">DEV CONSOLE</text>
-                        <g transform="translate(1, 30)">
-                            <rect x="0" y="0" width="124" height="15" rx="4" fill="#141828" stroke="#374151" stroke-width="1"/>
-                            <text x="6" y="11" font-family="'Outfit', sans-serif" font-weight="900" font-size="8.5" letter-spacing="1.6" fill="#e2e8f0">CLASSIC ARCADE</text>
-                            <circle cx="114" cy="7.5" r="3" fill="#22c55e"/>
-                        </g>
                     </g>
                 </svg>
             </div>
@@ -1136,7 +1158,7 @@
                     </div>
                     
                     <div class="scanner-wifi-tip">
-                        <span class="lan-port-warning">PORT :5000 (3 ZEROS)</span> &bull; Connect phone to same Wi-Fi &bull; 1st player is Admin
+                        <span id="lan-domain-tip-text"><span class="lan-port-warning">PORT :5000</span> &bull; Connect phone to same Wi-Fi &bull; 1st player is Admin</span>
                     </div>
                 </div>
             </div>
@@ -1440,40 +1462,32 @@
         }
 
         // PHONE AUTO-CONNECT VIA QR CODE (reads ?code=XXX or ?room=XXX)
+        let pendingUrlRoomCode = null;
+
+        // PHONE AUTO-CONNECT VIA QR CODE (reads ?code=XXX or ?room=XXX)
         function checkUrlAutoJoin() {
             try {
                 const params = new URLSearchParams(window.location.search);
-                const queryCode = params.get('code') || params.get('room');
+                const queryCode = (params.get('code') || params.get('room') || '').trim();
                 if (queryCode) {
+                    pendingUrlRoomCode = queryCode;
                     const codeInput = document.getElementById('room-code-input');
                     if (codeInput) codeInput.value = queryCode;
 
-                    let savedName = localStorage.getItem('dev_console_player_name');
-                    if (!savedName || savedName.toLowerCase() === 'screen') {
-                        savedName = `Player_${Math.floor(100 + Math.random() * 900)}`;
-                        localStorage.setItem('dev_console_player_name', savedName);
-                    }
-                    playerName = savedName;
-                    const nameInput = document.getElementById('username-input');
-                    if (nameInput) nameInput.value = savedName;
-
-                    // Hide modals and auto-emit join_room_req
-                    document.getElementById('name-modal')?.classList.add('hidden');
+                    // Ensure name-modal is SHOWN so it asks for username!
+                    document.getElementById('name-modal')?.classList.remove('hidden');
                     document.getElementById('role-modal')?.classList.add('hidden');
                     document.getElementById('join-modal')?.classList.add('hidden');
 
-                    const attemptJoin = () => {
-                        socket.emit('join_room_req', { code: queryCode, name: playerName });
-                    };
-
-                    if (socket && socket.connected) {
-                        attemptJoin();
-                    } else {
-                        socket.once('connect', attemptJoin);
+                    const savedName = localStorage.getItem('dev_console_player_name');
+                    const nameInput = document.getElementById('username-input');
+                    if (nameInput) {
+                        if (savedName) nameInput.value = savedName;
+                        setTimeout(() => nameInput.focus(), 150);
                     }
                 }
             } catch (err) {
-                console.warn('Auto-join error:', err);
+                console.warn('Auto-join check error:', err);
             }
         }
 
@@ -1654,8 +1668,16 @@
             }
         });
 
-        // CLIENT SOCKET & STATE
-        const socket = io();
+        // CLIENT SOCKET & LOW LATENCY CONFIGURATION
+        const socket = io({
+            transports: ['websocket', 'polling'],
+            upgrade: true,
+            rememberUpgrade: true,
+            reconnection: true,
+            reconnectionAttempts: 25,
+            reconnectionDelay: 200,
+            timeout: 6000
+        });
         let playerName = '', isHostUser = false, isScreenMode = false;
         let gamesCatalog = [], selectedGameIndex = 0;
         let isPausedByAdmin = false;
@@ -1803,9 +1825,30 @@
             const input = document.getElementById('username-input');
             const val = input ? input.value.trim() : '';
             if (!val) { document.getElementById('name-error-msg').classList.remove('hidden'); return; }
-            soundEngine.playClick(); playerName = val;
+            document.getElementById('name-error-msg').classList.add('hidden');
+            soundEngine.playClick();
+            playerName = val;
             localStorage.setItem('dev_console_player_name', val);
             document.getElementById('name-modal').classList.add('hidden');
+
+            // If visiting via ?code=123, directly send into lobby!
+            if (pendingUrlRoomCode) {
+                isScreenMode = false;
+                document.getElementById('role-modal')?.classList.add('hidden');
+                document.getElementById('join-modal')?.classList.add('hidden');
+
+                const performDirectJoin = () => {
+                    socket.emit('join_room_req', { code: pendingUrlRoomCode, name: playerName });
+                };
+
+                if (socket && socket.connected) {
+                    performDirectJoin();
+                } else {
+                    socket.once('connect', performDirectJoin);
+                }
+                return;
+            }
+
             document.getElementById('role-modal').classList.remove('hidden');
         }
 
@@ -1830,12 +1873,19 @@
 
         function joinLobby() {
             soundEngine.playClick();
-            const code = document.getElementById('room-code-input').value.trim();
-            if (code) socket.emit('join_room_req', { code, name: playerName });
+            const codeInput = document.getElementById('room-code-input');
+            const code = codeInput ? codeInput.value.trim() : '';
+            if (!playerName) {
+                playerName = localStorage.getItem('dev_console_player_name') || `Player_${Math.floor(100 + Math.random() * 900)}`;
+            }
+            socket.emit('join_room_req', { code: code || activeRoomCode, name: playerName });
         }
 
         function joinFast() {
             soundEngine.playClick();
+            if (!playerName) {
+                playerName = localStorage.getItem('dev_console_player_name') || `Player_${Math.floor(100 + Math.random() * 900)}`;
+            }
             socket.emit('join_fast_req', { name: playerName });
         }
 
@@ -1906,9 +1956,18 @@
             }
         }
 
+        function getEffectiveConnectUrl(code, localIp) {
+            const isCloudDomain = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+            if (isCloudDomain) {
+                return `${window.location.origin}/?code=${code}`;
+            }
+            const ip = localIp || serverLocalIp || window.location.hostname || '127.0.0.1';
+            return `http://${ip}:5000/?code=${code}`;
+        }
+
         function copyLobbyDirectUrl() {
             soundEngine.playClick();
-            const url = directConnectUrl || `http://${serverLocalIp}:5000?code=${activeRoomCode}`;
+            const url = directConnectUrl || getEffectiveConnectUrl(activeRoomCode, serverLocalIp);
             navigator.clipboard.writeText(url).then(() => {
                 const fb = document.getElementById('copy-btn-feedback');
                 if (fb) {
@@ -1924,11 +1983,20 @@
             gamesCatalog = catalog || [];
             activeRoomCode = code;
             serverLocalIp = localIp || '127.0.0.1';
-            directConnectUrl = directUrl || `http://${serverLocalIp}:5000?code=${code}`;
+            directConnectUrl = getEffectiveConnectUrl(code, localIp);
 
             document.getElementById('display-room-code').innerText = code;
             document.getElementById('local-ip-display-text').innerText = directConnectUrl;
             
+            const tipEl = document.getElementById('lan-domain-tip-text');
+            if (tipEl) {
+                if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    tipEl.innerHTML = 'Scan QR code with phone camera to auto-connect &bull; 1st player is Admin';
+                } else {
+                    tipEl.innerHTML = '<span class="lan-port-warning">PORT :5000</span> &bull; Connect phone to same Wi-Fi &bull; 1st player is Admin';
+                }
+            }
+
             const qrContainer = document.getElementById("qrcode");
             if (qrContainer) {
                 qrContainer.innerHTML = '';
@@ -1953,11 +2021,16 @@
             renderNetflixGameSelection(catalog, selectedGame);
         });
 
-        socket.on('joined_successfully', ({ isHost, catalog }) => {
-            isHostUser = isHost; gamesCatalog = catalog || [];
+        socket.on('joined_successfully', ({ isHost, catalog, roomCode, name }) => {
+            if (roomCode) activeRoomCode = roomCode;
+            if (name) playerName = name;
+            isHostUser = isHost;
+            gamesCatalog = catalog || [];
             soundEngine.playKick();
-            document.getElementById('join-modal').classList.add('hidden');
-            document.getElementById('controller-view-container').classList.remove('hidden');
+            document.getElementById('name-modal')?.classList.add('hidden');
+            document.getElementById('role-modal')?.classList.add('hidden');
+            document.getElementById('join-modal')?.classList.add('hidden');
+            document.getElementById('controller-view-container')?.classList.remove('hidden');
 
             if (isHostUser) {
                 document.getElementById('admin-settings-trigger')?.classList.remove('hidden');
@@ -2017,6 +2090,38 @@
             if (arrows) arrows.innerHTML = '';
         }
 
+        function animateScoreUpdate(elementId, oldVal, newVal, teamColor) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            const board = document.getElementById('hud-score-board-row');
+            if (board) {
+                board.classList.remove('score-pop');
+                void board.offsetWidth;
+                board.classList.add('score-pop');
+                setTimeout(() => board.classList.remove('score-pop'), 450);
+            }
+
+            el.classList.remove('score-digit-bounce');
+            void el.offsetWidth;
+            el.classList.add('score-digit-bounce');
+            el.innerText = newVal;
+
+            if (newVal > oldVal) {
+                const parent = el.parentElement;
+                if (parent) {
+                    const tag = document.createElement('div');
+                    tag.className = 'floating-score-tag';
+                    tag.style.background = teamColor;
+                    tag.style.color = '#ffffff';
+                    tag.innerText = `+${newVal - oldVal}`;
+                    parent.style.position = 'relative';
+                    parent.appendChild(tag);
+                    setTimeout(() => tag.remove(), 850);
+                }
+            }
+        }
+
         socket.on('update_players', ({ players, hostSid, state, selectedGame, score, paused, timerFrozen, localIp, catalog }) => {
             gamesCatalog = catalog || gamesCatalog;
             connectedPlayersList = players || [];
@@ -2039,22 +2144,22 @@
             if (isScreenMode) {
                 document.getElementById('player-count-num').innerText = players.length;
                 if (score) {
-                    const prevRed = document.getElementById('hud-score-red').innerText;
-                    const prevBlue = document.getElementById('hud-score-blue').innerText;
+                    const prevRed = parseInt(document.getElementById('hud-score-red')?.innerText || '0', 10);
+                    const prevBlue = parseInt(document.getElementById('hud-score-blue')?.innerText || '0', 10);
+                    const newRed = parseInt(score.red || 0, 10);
+                    const newBlue = parseInt(score.blue || 0, 10);
                     
-                    if (prevRed != score.red || prevBlue != score.blue) {
-                        const board = document.getElementById('hud-score-board-row');
-                        if (board) {
-                            board.classList.add('score-pop');
-                            setTimeout(() => board.classList.remove('score-pop'), 400);
-                        }
+                    if (prevRed !== newRed) {
+                        animateScoreUpdate('hud-score-red', prevRed, newRed, '#ff2a5f');
+                    }
+                    if (prevBlue !== newBlue) {
+                        animateScoreUpdate('hud-score-blue', prevBlue, newBlue, '#0284c7');
                     }
 
-                    document.getElementById('hud-score-red').innerText = score.red || 0;
-                    document.getElementById('hud-score-blue').innerText = score.blue || 0;
-                    
-                    document.getElementById('goal-modal-score-red').innerText = score.red || 0;
-                    document.getElementById('goal-modal-score-blue').innerText = score.blue || 0;
+                    const goalModalRed = document.getElementById('goal-modal-score-red');
+                    const goalModalBlue = document.getElementById('goal-modal-score-blue');
+                    if (goalModalRed) goalModalRed.innerText = newRed;
+                    if (goalModalBlue) goalModalBlue.innerText = newBlue;
                 }
 
                 if (paused) document.getElementById('pause-banner').classList.remove('hidden');
@@ -2240,10 +2345,10 @@
 
         // KICKOFF COUNTDOWN SIGNAL
         socket.on('trigger_match_countdown', () => {
-            runKickoffCountdown(5);
+            runKickoffCountdown(3);
         });
 
-        function runKickoffCountdown(cdSecs = 5) {
+        function runKickoffCountdown(cdSecs = 3) {
             isKickoffCounting = true;
             document.getElementById('cheer-trophy-box')?.classList.add('hidden');
             const overlay = document.getElementById('cheer-overlay');
@@ -2264,7 +2369,7 @@
                     setTimeout(() => {
                         overlay.classList.add('hidden');
                         isKickoffCounting = false;
-                    }, 600);
+                    }, 500);
                 }
             }, 1000);
         }
@@ -4787,43 +4892,43 @@
             });
         }
 
-        // DEVGOAL GOAL CELEBRATION SEQUENCE
+        // DEVGOAL GOAL CELEBRATION SEQUENCE (INSTANT, NO DELAY)
         function triggerDevGoalCelebrationSequence(scoringTeam, goalX) {
             if (isGoalCelebrating) return;
             isGoalCelebrating = true;
-            ballPhysics.vx *= 0.2; ballPhysics.vz *= 0.2;
+            ballPhysics.vx *= 0.1; ballPhysics.vz *= 0.1;
 
             if (goalCelebrationTimeout) clearTimeout(goalCelebrationTimeout);
+
+            // Immediate goal event emission and audio
+            const targetTeamKey = scoringTeam === 'BLUE' ? 'blue' : 'red';
+            socket.emit('goal_scored', { team: targetTeamKey });
+
+            soundEngine.playWhistle();
+            soundEngine.playGoal();
+            spawnGoalFireworks(goalX);
+
+            const goalOverlay = document.getElementById('goal-celebration-overlay');
+            const plusRed = document.getElementById('plus-one-red-banner');
+            const plusBlue = document.getElementById('plus-one-blue-banner');
+
+            if (plusRed) plusRed.classList.add('hidden');
+            if (plusBlue) plusBlue.classList.add('hidden');
+
+            if (scoringTeam === 'RED') {
+                if (plusRed) plusRed.classList.remove('hidden');
+            } else {
+                if (plusBlue) plusBlue.classList.remove('hidden');
+            }
+
+            if (goalOverlay) goalOverlay.classList.add('show-overlay');
+
+            // Quick 1-second celebration flash, then immediately launch 3-second kickoff countdown!
             goalCelebrationTimeout = setTimeout(() => {
-                const targetTeamKey = scoringTeam === 'BLUE' ? 'blue' : 'red';
-                socket.emit('goal_scored', { team: targetTeamKey });
-
-                soundEngine.playWhistle();
-                soundEngine.playGoal();
-                spawnGoalFireworks(goalX);
-
-                setTimeout(() => {
-                    spawnGoalFireworks(goalX);
-                }, 1000);
-
-                const goalOverlay = document.getElementById('goal-celebration-overlay');
-                const plusRed = document.getElementById('plus-one-red-banner');
-                const plusBlue = document.getElementById('plus-one-blue-banner');
-
-                plusRed.classList.add('hidden');
-                plusBlue.classList.add('hidden');
-
-                if (scoringTeam === 'RED') plusRed.classList.remove('hidden');
-                else plusBlue.classList.remove('hidden');
-
-                goalOverlay.classList.add('show-overlay');
-
-                setTimeout(() => {
-                    goalOverlay.classList.remove('show-overlay');
-                    resetBallAndPlayersPosition();
-                    isGoalCelebrating = false;
-                    runKickoffCountdown(3);
-                }, 2000);
+                if (goalOverlay) goalOverlay.classList.remove('show-overlay');
+                resetBallAndPlayersPosition();
+                isGoalCelebrating = false;
+                runKickoffCountdown(3);
             }, 1000);
         }
     </script>

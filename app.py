@@ -7,7 +7,7 @@ from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = 'dev-console-secret-key-2026'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading", ping_interval=8, ping_timeout=15)
 
 active_rooms = {}
 AVATAR_COLORS = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7', '#ec4899', '#f97316', '#06b6d4']
@@ -88,49 +88,86 @@ def serve_assets(filename):
     return send_from_directory(assets_dir, filename)
 
 @socketio.on('create_room')
-def handle_create_room():
-    code = generate_room_code()
+def handle_create_room(data=None):
+    code = None
+    if isinstance(data, dict):
+        code = str(data.get('code', '')).strip().upper()
+    if not code:
+        code = generate_room_code()
     local_ip = get_local_ip()
     join_room(code)
-    active_rooms[code] = {
-        'code': code,
-        'local_ip': local_ip,
-        'screen_sid': request.sid,
-        'host_sid': None,
-        'host_name': 'Admin',
-        'players': {},
-        'state': 'connecting_lobby',
-        'selected_game': 'dev_goal',
-        'score': {'red': 0, 'blue': 0},
-        'paused': False,
-        'timer_frozen': False,
-        'start_time': None
-    }
+
+    if code in active_rooms:
+        active_rooms[code]['screen_sid'] = request.sid
+        active_rooms[code]['local_ip'] = local_ip
+    else:
+        active_rooms[code] = {
+            'code': code,
+            'local_ip': local_ip,
+            'screen_sid': request.sid,
+            'host_sid': None,
+            'host_name': 'Admin',
+            'players': {},
+            'state': 'connecting_lobby',
+            'selected_game': 'dev_goal',
+            'score': {'red': 0, 'blue': 0},
+            'paused': False,
+            'timer_frozen': False,
+            'start_time': None
+        }
+
     emit('room_created', {
         'code': code,
         'localIp': local_ip,
-        'directUrl': f"http://{local_ip}:5000?code={code}",
+        'directUrl': f"http://{local_ip}:5000/?code={code}",
         'catalog': GAMES_CATALOG,
-        'selectedGame': 'dev_goal'
+        'selectedGame': active_rooms[code].get('selected_game', 'dev_goal')
     })
 
 @socketio.on('join_room_req')
 def handle_join_room(data):
-    code = str(data.get('code', '')).strip()
-    name = data.get('name', 'Player').strip()
+    raw_code = str(data.get('code', '')).strip().upper().replace('#', '').replace(' ', '')
+    name = str(data.get('name', 'Player')).strip()
 
     if not name:
-        emit('error_msg', 'Please enter your name first!')
-        return
+        name = f"Player_{random.randint(100, 999)}"
 
+    # If code is blank or unspecified, select the single active room or default 1234
+    if not raw_code:
+        if active_rooms:
+            code = list(active_rooms.keys())[0]
+        else:
+            code = '1234'
+    else:
+        code = raw_code
+
+    # If code not in active_rooms:
     if code not in active_rooms:
-        emit('error_msg', 'Invalid Room Code!')
-        return
+        # If exactly 1 room currently exists on screen, connect directly to that active room!
+        if len(active_rooms) == 1:
+            code = list(active_rooms.keys())[0]
+        else:
+            # Auto-heal / initialize room with this code so connection NEVER fails!
+            local_ip = get_local_ip()
+            active_rooms[code] = {
+                'code': code,
+                'local_ip': local_ip,
+                'screen_sid': None,
+                'host_sid': request.sid,
+                'host_name': name,
+                'players': {},
+                'state': 'connecting_lobby',
+                'selected_game': 'dev_goal',
+                'score': {'red': 0, 'blue': 0},
+                'paused': False,
+                'timer_frozen': False,
+                'start_time': None
+            }
 
     room = active_rooms[code]
     join_room(code)
 
-    is_host = (len(room['players']) == 0) or (room['host_sid'] is None) or (room['host_sid'] == request.sid)
+    is_host = (len(room['players']) == 0) or (room.get('host_sid') is None) or (room.get('host_sid') == request.sid)
     if is_host:
         room['host_sid'] = request.sid
         room['host_name'] = name
@@ -166,19 +203,13 @@ def handle_join_room(data):
 
 @socketio.on('join_fast_req')
 def handle_join_fast(data):
-    name = data.get('name', 'Player').strip()
+    name = str(data.get('name', 'Player')).strip() if isinstance(data, dict) else 'Player'
     if not name:
-        emit('error_msg', 'Please enter your name first!')
-        return
+        name = f"Player_{random.randint(100, 999)}"
 
     available_codes = list(active_rooms.keys())
-    if not available_codes:
-        emit('error_msg', 'No active room found on TV screen! Please create one first.')
-        return
-
-    selected_code = available_codes[0]
-    data['code'] = selected_code
-    handle_join_room(data)
+    selected_code = available_codes[0] if available_codes else '1234'
+    handle_join_room({'code': selected_code, 'name': name})
 
 @socketio.on('admin_goto_game_select')
 def handle_admin_goto_game_select():
@@ -315,7 +346,7 @@ def handle_admin_setting_action(data):
 @socketio.on('controller_input')
 def handle_controller_input(data):
     for code, room in active_rooms.items():
-        if request.sid in room['players']:
+        if request.sid in room.get('players', {}):
             p = room['players'][request.sid]
             p['moveX'] = data.get('moveX', 0)
             p['moveY'] = data.get('moveY', 0)
@@ -325,6 +356,7 @@ def handle_controller_input(data):
             p['shootPower'] = data.get('shootPower', 0.5)
             p['isChargingShot'] = data.get('isChargingShot', False)
             
+            target_sid = room.get('screen_sid') or code
             emit('player_move', {
                 'id': request.sid,
                 'moveX': p['moveX'],
@@ -338,7 +370,7 @@ def handle_controller_input(data):
                 'normY': data.get('normY', None),
                 'swingForce': data.get('swingForce', 1.0),
                 'isTouchDrag': data.get('isTouchDrag', False)
-            }, to=room['screen_sid'])
+            }, to=target_sid)
             break
 
 @socketio.on('goal_scored')
@@ -364,13 +396,22 @@ def handle_match_over_leave():
 @socketio.on('disconnect')
 def handle_disconnect():
     for code, room in list(active_rooms.items()):
-        if request.sid == room.get('screen_sid') or request.sid == room.get('host_sid'):
-            emit('room_closed', {'reason': 'TV Screen or Host Admin disconnected.'}, to=code)
-            del active_rooms[code]
-            break
-        elif request.sid in room['players']:
+        if request.sid in room.get('players', {}):
             del room['players'][request.sid]
+            if room.get('host_sid') == request.sid:
+                if room['players']:
+                    next_sid = list(room['players'].keys())[0]
+                    room['host_sid'] = next_sid
+                    room['host_name'] = room['players'][next_sid]['name']
+                    room['players'][next_sid]['isHost'] = True
+                else:
+                    room['host_sid'] = None
             _broadcast_room_update(code)
+            break
+        elif request.sid == room.get('screen_sid'):
+            room['screen_sid'] = None
+            if not room.get('players'):
+                del active_rooms[code]
             break
 
 def _broadcast_room_update(code):
